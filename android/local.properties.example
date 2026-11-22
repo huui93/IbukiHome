@@ -1,0 +1,4 @@
+# Flutter 通常自动生成 local.properties。仅在需要手动指定 SDK 时复制并填写。
+# Windows 可用正斜杠书写路径，例如 C:/Android/Sdk。
+sdk.dir=/path/to/android/sdk
+flutter.sdk=/path/to/flutter

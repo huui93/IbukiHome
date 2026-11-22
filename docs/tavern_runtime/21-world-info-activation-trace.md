@@ -1,0 +1,5 @@
+# Activation trace
+
+Each provided entry has exactly one final `WorldInfoActivationDecision`, including disabled and scope-mismatched entries. Typed reasons distinguish constant, primary, recursive and sticky activation from disabled, scope/generation/manual filtering, absent primary/secondary keys, delay, cooldown, probability failure, group loss and recursion guard. Decisions carry composite identity, title, matched key names, recursion source/pass, probability sample, group winner/score/weight/sample and remaining timed counters. The trace also lists active-entry recursion repeats blocked by the visited guard. No lore body, Provider secret, prompt text or user transcript is duplicated into the trace.
+
+An Inspector joins `WorldInfoActivationDecision.identity` to the resulting `PromptSource.origin` (`parentId=bookId`, `id=entryId`) and then to the Prompt Compiler's source decision. “Active but dropped by compiler budget” is a valid two-trace result, not a contradiction. Activation trace means eligibility; compile trace means final model-visible inclusion.

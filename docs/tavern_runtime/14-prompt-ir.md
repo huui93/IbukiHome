@@ -1,0 +1,7 @@
+# Prompt IR
+
+`PromptSource` carries stable ID, typed source category, `PromptOrigin(type, id, parentId)`, provider-neutral role intent, insertion placement/depth, priority, explicit order, required flag, budget class and inspection visibility. Its ordered `PromptAtom`s preserve text, reasoning, tool invocation/result linkage and attachment references without flattening them into one string. `CompiledPromptSegment` retains source and atom identities, role intent, token estimate and a Continue marker. The Provider adapter must serialize this IR without reordering or recompiling it.
+
+Role intent is `systemLike`, `userLike`, `assistantLike` or `context`; no OpenAI/Gemini/DeepSeek wire role appears in compiler core. Typed sources include System, Character, Persona, Scenario, World Info, Memory, RAG, Example Dialogue, History, Author Note, User Input, Post-History, Generation Instruction and Continuation. Origin references are domain-neutral, not SQLite rows or widget paths.
+
+Reasoning defaults to excluded from history; a caller may allow summaries or all reasoning explicitly. Tool Call/Result default to excluded, or remain structured with stable invocation IDs under `structured` policy. Attachments default to excluded; reference-only inclusion is explicit. Events, unavailable reasoning and unknown parts do not silently become prompt text. Inspectors must redact `sensitive` and `hidden` source content by default; the trace itself contains no source body.

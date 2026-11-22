@@ -1,0 +1,10 @@
+{
+  "api_version": 1,
+  "read_only": true,
+  "supports_projects": true,
+  "supports_segments": true,
+  "supports_changes": false,
+  "supports_write": false,
+  "supports_streaming": false,
+  "supports_ai_proxy": false
+}

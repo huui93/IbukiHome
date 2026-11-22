@@ -1,0 +1,11 @@
+# Tavern v13 persistence
+
+SQLite v12 -> v13 is additive. Existing tables and columns are untouched. New tables: `tavern_sessions`, `tavern_participants`, `tavern_story_lines`, `tavern_turns`, `tavern_alternatives`, `tavern_line_selections`, `tavern_content_parts`, `tavern_generation_attempts`.
+
+SQLite foreign keys and checks constrain ownership, order and status. Content Part kinds use typed domain validation and preserve unknown future kind names rather than a closed SQLite check. Session/root creation, branch/selection snapshot/activation, Turn/first Alternative/optional Attempt, and new Alternative/first Attempt creation are transactions. Cross-session participants, lines and attempt targets are checked by the repository before write. Stable IDs are caller-provided to support imported identity and deterministic fixtures.
+
+`tavern_line_selections` contains IDs only. A branch origin references a Turn owned by its direct parent and one of that Turn's Alternatives. The table freezes every inherited selection at branch creation; it does not duplicate content. Its `id` is a deterministic JSON-encoded pair of line and Turn IDs (unambiguous even when imported IDs contain punctuation), while `(story_line_id, turn_id)` is unique. Archive merge may reassign the row ID without changing its semantic pair.
+
+Deletion policy: a Session can be hard-deleted via an explicit transaction that removes Tavern-owned rows only. It never deletes CharacterCard, Persona or World assets. A Story Line can be archived only when it is not active and has no active child. Hard-delete of Story Line and Turn is intentionally not exposed in v1; their history and branch anchors remain stable. An Alternative cannot be removed if selected or inherited by any line; removal of an unselected/unreferenced Alternative also removes its Parts and Attempts. The archive path remains available for non-destructive Session retirement. Raw direct SQL bypassing the repository is outside the application contract.
+
+Asset references are typed but not FK-bound to Legacy tables. This avoids equating a legacy runtime World with a Tavern Session. Asset deletion policy and missing-asset display are a later integration slice. There is no `lastViewedStoryLine`, scroll offset or UI anchor column here.

@@ -1,0 +1,6 @@
+{
+  "code": "not_found",
+  "message": "资源不存在。",
+  "request_id": "req-fixture-error",
+  "details": null
+}

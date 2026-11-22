@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "id": "project-alpha",
+      "title": "雨夜试写",
+      "description": "用于协议测试的虚构项目",
+      "updated_at": "2026-07-29T10:05:00Z",
+      "revision": 3,
+      "segment_count": 2
+    }
+  ],
+  "request_id": "req-fixture-project-list"
+}

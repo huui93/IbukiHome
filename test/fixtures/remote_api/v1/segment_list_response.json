@@ -1,0 +1,23 @@
+{
+  "items": [
+    {
+      "id": "segment-alpha-1",
+      "project_id": "project-alpha",
+      "order_index": 0,
+      "content": "雨声落在窗边。",
+      "created_at": "2026-07-29T09:56:00Z",
+      "updated_at": "2026-07-29T10:01:00Z",
+      "revision": 2
+    },
+    {
+      "id": "segment-alpha-2",
+      "project_id": "project-alpha",
+      "order_index": 1,
+      "content": "灯光照亮书桌。",
+      "created_at": "2026-07-29T09:57:00Z",
+      "updated_at": "2026-07-29T09:57:00Z",
+      "revision": 1
+    }
+  ],
+  "request_id": "req-fixture-segment-list"
+}
