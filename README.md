@@ -2,6 +2,10 @@
 
 **v1.0.0** · Flutter Android 应用。小说创作与角色聊天分别保存作品、角色和记忆。两个模式共用模型配置，可按任务选择模型。
 
+[**下载 Android APK · v1.0.0 通用版**](https://github.com/huui93/IbukiHome/releases/download/v1.0.0/IbukiHome-v1.0.0-universal.apk)
+
+支持 Android 7.0 及以上，使用测试签名。[发布说明与 SHA-256](https://github.com/huui93/IbukiHome/releases/tag/v1.0.0)
+
 ## 功能
 
 - **小说**提供书架、阅读、TXT 导入和分作品创作。每部作品可配置角色、大纲、长期记忆、系统提示词方案和输出字数范围。生成支持续写、重写和分支。
@@ -60,4 +64,4 @@ APK 在 `build/app/outputs/flutter-apk/`。现有 release 构建使用 Android �
 - [生成、历史与分支运行时设计](docs/tavern_runtime/README.md)
 - [依赖和资源来源](docs/third-party.md)
 
-此仓库计划以 GitHub Private 创建。项目源码许可由维护者另行决定。提交前检查 `git status` 和 `git diff --cached`。Wiki、Issue、附件和 Git 历史也应避免记录凭据、个人资料或真实聊天及作品内容。
+项目源码许可由维护者另行决定。提交前检查 `git status` 和 `git diff --cached`。Wiki、Issue、附件和 Git 历史也应避免记录凭据、个人资料或真实聊天及作品内容。
