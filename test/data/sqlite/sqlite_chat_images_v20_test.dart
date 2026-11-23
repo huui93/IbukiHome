@@ -63,7 +63,7 @@ void main() {
       await db.setVersion(19);
       await f.database.close();
       final migrated = await reopenFixture(f);
-      expect(await (await migrated.database.database).getVersion(), 21);
+      expect(await (await migrated.database.database).getVersion(), 22);
       expect((await migrated.chatRepository.getMessage('old')).content, '原有文字');
       expect((await migrated.chatRepository.getMessage('old')).image, isNull);
       final image = await send(migrated);
@@ -82,6 +82,18 @@ void main() {
       expect(actual.image, saved.image);
       expect(actual.content, contains('ORBIT-73'));
       expect(actual.image!.userText, '看看标签');
+      final textHistory = await again.chatRepository.listMessages(
+        'a',
+        includeImageData: false,
+      );
+      expect(textHistory.last, actual.withoutImage());
+      expect(textHistory.last.hasImage, isTrue);
+      expect(textHistory.last.image, isNull);
+      expect(await again.chatRepository.getMessageImage('old'), isNull);
+      expect(await again.chatRepository.getMessageImage('u'), actual.image);
+      expect(textHistory.last.content, contains('ORBIT-73'));
+      final full = (await again.chatRepository.listMessages('a')).last;
+      expect(full.image!.bytes, actual.image!.bytes);
       expect(await again.chatRepository.listMessages('b'), isEmpty);
     },
   );

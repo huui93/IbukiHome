@@ -1,6 +1,7 @@
 import '../../core/errors/data_exceptions.dart';
 import '../../data/repositories/chat_repository.dart';
 import '../repositories/latest_chat_mutation.dart';
+import '../../domain/chat/chat_image.dart';
 import '../../domain/chat/chat_message.dart';
 import '../../domain/chat/chat_session.dart';
 import 'in_memory_ibuki_store.dart';
@@ -108,6 +109,7 @@ class InMemoryChatRepository implements ChatRepository {
   Future<List<ChatMessage>> listMessages(
     String sessionId, {
     bool includeDeleted = false,
+    bool includeImageData = true,
   }) async {
     final items =
         store.chatMessages.where((message) {
@@ -117,7 +119,9 @@ class InMemoryChatRepository implements ChatRepository {
           final time = left.createdAt.compareTo(right.createdAt);
           return time != 0 ? time : left.id.compareTo(right.id);
         });
-    return List.unmodifiable(items);
+    return List.unmodifiable(
+      includeImageData ? items : items.map((item) => item.withoutImage()),
+    );
   }
 
   @override
@@ -126,6 +130,10 @@ class InMemoryChatRepository implements ChatRepository {
     if (message == null) throw EntityNotFoundException('ChatMessage', id);
     return message;
   }
+
+  @override
+  Future<ChatImage?> getMessageImage(String id) async =>
+      (await getMessage(id)).image;
 
   @override
   Future<void> appendMessage(ChatMessage message) async {

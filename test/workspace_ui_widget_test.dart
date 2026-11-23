@@ -200,6 +200,37 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('人物甲'), findsOneWidget);
+    expect(find.byKey(const Key('novel-quick-new-character')), findsOneWidget);
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('novel-character-character-1')),
+        matching: find.byType(IconButton),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final edit = find.byKey(const Key('edit-character-button'));
+    final delete = find.byKey(const Key('delete-character-button'));
+    final confirm = find.byKey(const Key('confirm-character-settings'));
+    await tester.ensureVisible(confirm);
+    await tester.pumpAndSettle();
+    expect(tester.getSize(confirm), tester.getSize(edit));
+    expect(tester.getSize(confirm), tester.getSize(delete));
+    expect(
+      tester.getTopLeft(confirm).dy,
+      greaterThan(tester.getTopLeft(edit).dy),
+    );
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('novel-character-context')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const Key('novel-character-character-1')),
+          )
+          .value,
+      isTrue,
+    );
   });
 
   testWidgets('novel composer exposes world context', (tester) async {
@@ -208,6 +239,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('novel-world-context-sheet')), findsOneWidget);
     expect(find.text('世界规则'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('novel-quick-new-world')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('world-card-title-field')),
+      '新世界卡',
+    );
+    await tester.enterText(
+      find.byKey(const Key('world-card-content-field')),
+      '在环形城里。',
+    );
+    await tester.tap(find.byKey(const Key('save-world-card-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('continuous-manuscript-list')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('novel-world-context')));
+    await tester.pumpAndSettle();
+    final created = find.widgetWithText(CheckboxListTile, '新世界卡');
+    expect(tester.widget<CheckboxListTile>(created).value, isTrue);
   });
 
   testWidgets('chat opens directly to messages', (tester) async {

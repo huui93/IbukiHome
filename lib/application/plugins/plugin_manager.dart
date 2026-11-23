@@ -63,7 +63,7 @@ class PluginManager {
     this.lifecycle = const NoopPluginLifecycle(),
     this.storageRepository,
     IbukiHookBus? hookBus,
-    this.applicationVersion = '1.0.0',
+    this.applicationVersion = '1.1.0',
     this.limits = const PluginInstallLimits(),
     DateTime Function()? now,
     String Function()? operationId,

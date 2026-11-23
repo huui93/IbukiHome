@@ -10,6 +10,8 @@ class ChatMemoryContext {
     this.sources = const [],
     this.history = const [],
     this.overview = '',
+    this.excludedRawMessageIds = const {},
+    this.continuityStartMessageId,
   });
 
   final List<ChatMemoryEntry> pinned;
@@ -18,6 +20,8 @@ class ChatMemoryContext {
   final List<ChatMemorySource> sources;
   final List<ChatMemorySource> history;
   final String overview;
+  final Set<String> excludedRawMessageIds;
+  final String? continuityStartMessageId;
 
   bool get isEmpty =>
       pinned.isEmpty &&

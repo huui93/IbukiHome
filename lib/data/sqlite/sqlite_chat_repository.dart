@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../../core/errors/data_exceptions.dart';
+import '../../domain/chat/chat_image.dart';
 import '../../domain/chat/chat_message.dart';
 import '../../domain/chat/chat_session.dart';
 import '../repositories/chat_repository.dart';
@@ -150,15 +151,33 @@ class SQLiteChatRepository implements ChatRepository {
   Future<List<ChatMessage>> listMessages(
     String sessionId, {
     bool includeDeleted = false,
+    bool includeImageData = true,
   }) async {
     final database = await ibukiDatabase.database;
     final rows = await database.query(
       'chat_messages',
+      columns: includeImageData
+          ? null
+          : const [
+              'id',
+              'created_at',
+              'updated_at',
+              'revision',
+              'deleted_at',
+              'session_id',
+              'project_id',
+              'role',
+              'content',
+              'finish_reason',
+              'image_json IS NOT NULL AS has_image',
+            ],
       where: activeWhere('session_id = ?', includeDeleted: includeDeleted),
       whereArgs: [sessionId],
       orderBy: 'created_at ASC, id ASC',
     );
-    return List.unmodifiable(rows.map(chatMessageFromSql));
+    return List.unmodifiable(
+      rows.map((row) => chatMessageFromSql(row, deferImageDecoding: true)),
+    );
   }
 
   @override
@@ -173,6 +192,10 @@ class SQLiteChatRepository implements ChatRepository {
     if (rows.isEmpty) throw EntityNotFoundException('ChatMessage', id);
     return chatMessageFromSql(rows.single);
   }
+
+  @override
+  Future<ChatImage?> getMessageImage(String id) async =>
+      (await getMessage(id)).image;
 
   @override
   Future<void> appendMessage(ChatMessage message) async {

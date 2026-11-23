@@ -44,7 +44,7 @@ class NovelPromptBuilder {
       ),
       userPrompt:
           '''${structured ? '' : '''【最近正文】
-${_segments(recent, start + 1)}
+${_segments(recent)}
 
 '''}【本次建议】
 ${instruction.trim().isEmpty ? '（无额外建议，请自然续写）' : instruction.trim()}
@@ -84,14 +84,13 @@ ${_outputRules('下一段正文')}''',
       ),
       userPrompt:
           '''${structured ? '' : '''【前文上下文】
-${_segments(segments.sublist(beforeStart, index), beforeStart + 1)}
+${_segments(segments.sublist(beforeStart, index))}
 
 '''}【需要重写的段落】
-[段落 ${index + 1}]
 ${target.content}
 
 ${structured ? '' : '''【后文上下文】
-${_segments(segments.sublist(index + 1, afterEnd), index + 2)}
+${_segments(segments.sublist(index + 1, afterEnd))}
 
 '''}【本次重写要求】
 ${instruction.trim().isEmpty ? '保留情节作用，在不改变核心事实的前提下优化表达。' : instruction.trim()}
@@ -181,7 +180,7 @@ ${_outputRules('重写后的这一段正文')}''',
       ),
       userPrompt:
           '''${structured ? '' : '''【当前段落前面的正文】
-${_segments(segments.sublist(beforeStart, index), beforeStart + 1)}
+${_segments(segments.sublist(beforeStart, index))}
 
 '''}【选中内容之前】
 ${target.content.substring(0, start).isEmpty ? '（选区位于段落开头）' : target.content.substring(0, start)}
@@ -193,13 +192,13 @@ ${target.content.substring(start, end)}
 ${target.content.substring(end).isEmpty ? '（选区位于段落结尾）' : target.content.substring(end)}
 
 ${structured ? '' : '''【当前段落后面的正文】
-${_segments(segments.sublist(index + 1, afterEnd), index + 2)}
+${_segments(segments.sublist(index + 1, afterEnd))}
 
 '''}【本次局部修改要求】
 ${instruction.trim().isEmpty ? '在保留原意和上下文衔接的前提下优化选中内容。' : instruction.trim()}
 
 【严格任务】
-只返回用于替换【需要修改的内容】的新文本。不要返回完整段落，不要返回选区外的前后文。不要解释、分析或添加 Markdown。''',
+只返回用于替换【需要修改的内容】的新文本。不要返回完整段落，不要返回选区外的前后文。不要解释、分析或添加 Markdown。不要输出段号。''',
     );
   }
 
@@ -256,9 +255,7 @@ ${_worldCards(worldCards)}
       parts.add('【高层长期事实】\n${digest.content.trim()}');
     }
     for (final chunk in memory.recentChunks) {
-      parts.add(
-        '【第 ${chunk.sourceStartOrder + 1}-${chunk.sourceEndOrder + 1} 段摘要】\n${chunk.summary.trim()}',
-      );
+      parts.add('【往事摘要】\n${chunk.summary.trim()}');
     }
     return parts.join('\n\n');
   }
@@ -325,18 +322,15 @@ ${adaptation.isEmpty ? '（未填写）' : adaptation}
         .join('\n');
   }
 
-  String _segments(List<Segment> items, int startIndex) {
+  String _segments(List<Segment> items) {
     if (items.isEmpty) return '（暂无正文）';
-    return [
-      for (var index = 0; index < items.length; index += 1)
-        '[段落 ${startIndex + index}]\n${items[index].content}',
-    ].join('\n\n');
+    return items.map((item) => item.content).join('\n\n');
   }
 
   String _outputRules(String target) {
     return '''【严格输出规则】
 - 只输出$target，单次只写一个段落。
-- 不要解释、分析、标题、总结或创作说明。
+- 不要解释、分析、标题、总结或创作说明。不要在正文中输出段号或声称自己正在写第几段。
 - 不要说“好的”“以下是”等开场白。
 - 不要使用 Markdown 代码块。
 - 保持人物、文风、视角和叙事状态一致。''';

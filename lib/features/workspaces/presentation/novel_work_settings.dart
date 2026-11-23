@@ -13,6 +13,7 @@ import '../../../app/widgets/ibuki_motion_widgets.dart';
 import '../../../application/projects/current_project_controller.dart';
 import '../../../application/providers/repository_providers.dart';
 import '../../ai/presentation/ai_model_binding_sheet.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class NovelWorkSettings extends ConsumerWidget {
   const NovelWorkSettings({super.key});
@@ -20,10 +21,13 @@ class NovelWorkSettings extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final projectId = ref.watch(currentProjectControllerProvider);
     if (projectId == null) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(24),
-          child: Text('从创作页选择作品后，在这里管理它的创作设置。', textAlign: TextAlign.center),
+          child: Text(
+            context.tr("从创作页选择作品后，在这里管理它的创作设置。"),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
@@ -34,14 +38,14 @@ class NovelWorkSettings extends ConsumerWidget {
           error: (_, _) => Center(
             child: TextButton(
               onPressed: () => context.go(AppRoutes.novel),
-              child: const Text('作品已不可用，返回书架'),
+              child: Text(context.tr("作品已不可用，返回书架")),
             ),
           ),
           data: (project) => project.deletedAt != null
               ? Center(
                   child: TextButton(
                     onPressed: () => context.go(AppRoutes.novel),
-                    child: const Text('作品已删除，返回书架'),
+                    child: Text(context.tr("作品已删除，返回书架")),
                   ),
                 )
               : ListView(
@@ -60,7 +64,7 @@ class NovelWorkSettings extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '当前作品',
+                            context.tr("当前作品"),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                           const SizedBox(height: 6),
@@ -73,7 +77,7 @@ class NovelWorkSettings extends ConsumerWidget {
                             onPressed: () =>
                                 context.go(AppRoutes.novelCreation),
                             icon: const Icon(Icons.swap_horiz),
-                            label: const Text('切换作品'),
+                            label: Text(context.tr("切换作品")),
                           ),
                         ],
                       ),
@@ -92,7 +96,7 @@ class NovelWorkSettings extends ConsumerWidget {
                           ),
                           _entry(
                             context,
-                            '输出字数',
+                            '输出字数与温度',
                             Icons.format_size_rounded,
                             AppRoutes.projectOutputLimits(projectId),
                             subtitle:
@@ -113,7 +117,7 @@ class NovelWorkSettings extends ConsumerWidget {
                           ListTile(
                             key: const Key('novel-plugin-entry'),
                             leading: const Icon(Icons.extension_outlined),
-                            title: const Text('小说插件'),
+                            title: Text(context.tr("小说插件")),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () =>
                                 showNovelPluginPage(context, projectId),
@@ -121,7 +125,7 @@ class NovelWorkSettings extends ConsumerWidget {
                           ListTile(
                             key: const Key('novel-storylines-entry'),
                             leading: const Icon(Icons.alt_route),
-                            title: const Text('故事线'),
+                            title: Text(context.tr("故事线")),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () =>
                                 showNovelBranches(context, ref, projectId),
@@ -148,8 +152,8 @@ class NovelWorkSettings extends ConsumerWidget {
                           ListTile(
                             key: const Key('novel-settings-model'),
                             leading: const Icon(Icons.auto_awesome_outlined),
-                            title: const Text('本作品模型'),
-                            subtitle: const Text('选择小说使用的模型'),
+                            title: Text(context.tr("本作品模型")),
+                            subtitle: Text(context.tr("选择小说使用的模型")),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => showAiModelBindingSheet(
                               context: context,
@@ -210,8 +214,8 @@ class NovelWorkSettings extends ConsumerWidget {
     child: ListTile(
       key: key,
       leading: Icon(icon),
-      title: Text(title),
-      subtitle: subtitle == null ? null : Text(subtitle),
+      title: Text(context.tr(title)),
+      subtitle: subtitle == null ? null : Text(context.tr(subtitle)),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => context.push(route),
     ),
@@ -238,7 +242,7 @@ class _DeleteCurrentNovelState extends ConsumerState<_DeleteCurrentNovel> {
       color: Theme.of(context).colorScheme.error,
     ),
     title: Text(
-      _deleting ? '正在删除…' : '删除当前作品',
+      _deleting ? context.tr("正在删除…") : context.tr("删除当前作品"),
       style: TextStyle(color: Theme.of(context).colorScheme.error),
     ),
     onTap: _delete,
@@ -251,12 +255,16 @@ class _DeleteCurrentNovelState extends ConsumerState<_DeleteCurrentNovel> {
       context: context,
       builder: (dialog) => AlertDialog(
         key: const Key('novel-delete-current-dialog'),
-        title: const Text('删除当前作品？'),
-        content: Text('确认删除《${widget.title}》及其全部故事线？\n删除后，这部作品将从书架和创作列表移除。'),
+        title: Text(context.tr("删除当前作品？")),
+        content: Text(
+          context.tr("确认删除《{title}》及其全部故事线？\n删除后，这部作品将从书架和创作列表移除。", {
+            "title": widget.title,
+          }),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialog, false),
-            child: const Text('取消'),
+            child: Text(context.tr("取消")),
           ),
           FilledButton(
             key: const Key('novel-confirm-delete-project'),
@@ -264,7 +272,7 @@ class _DeleteCurrentNovelState extends ConsumerState<_DeleteCurrentNovel> {
               backgroundColor: Theme.of(dialog).colorScheme.error,
             ),
             onPressed: () => Navigator.pop(dialog, true),
-            child: const Text('删除'),
+            child: Text(context.tr("删除")),
           ),
         ],
       ),
@@ -295,7 +303,7 @@ class _DeleteCurrentNovelState extends ConsumerState<_DeleteCurrentNovel> {
         setState(() => _deleting = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('作品删除未完成，请重试。')));
+        ).showSnackBar(SnackBar(content: Text(context.tr("作品删除未完成，请重试。"))));
       }
     }
   }

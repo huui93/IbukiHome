@@ -124,9 +124,14 @@ class WorldCardListPage extends ConsumerWidget {
 }
 
 class NewWorldCardPage extends ConsumerStatefulWidget {
-  const NewWorldCardPage({required this.projectId, super.key});
+  const NewWorldCardPage({
+    required this.projectId,
+    this.returnOnComplete = false,
+    super.key,
+  });
 
   final String projectId;
+  final bool returnOnComplete;
 
   @override
   ConsumerState<NewWorldCardPage> createState() => _NewWorldCardPageState();
@@ -227,7 +232,11 @@ class _NewWorldCardPageState extends ConsumerState<NewWorldCardPage> {
       ref
           .read(mascotControllerProvider.notifier)
           .perform(MascotAction.celebrate);
-      context.go(AppRoutes.worldCard(widget.projectId, card.id));
+      if (widget.returnOnComplete && context.canPop()) {
+        context.pop(card);
+      } else {
+        context.go(AppRoutes.worldCard(widget.projectId, card.id));
+      }
     } catch (error) {
       if (!mounted) {
         return;

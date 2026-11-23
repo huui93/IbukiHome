@@ -9,6 +9,18 @@ import 'clean_ai_text.dart';
 class NovelAiResponse {
   const NovelAiResponse._();
 
+  static const _number = r'[0-9０-９零〇一二三四五六七八九十百千两]+';
+  static const _ordinal = '(?:第[ \\t]*$_number[ \\t]*段|段落[ \\t]*$_number)';
+  static final _heading = RegExp(
+    '^(?:#{1,6}[ \\t]+)?'
+    '(?:【$_ordinal】|\\[$_ordinal\\]|\\*\\*$_ordinal\\*\\*)'
+    '[ \\t]*(?:[：:][ \\t]*)?(?:\\r?\\n)?'
+    '|^(?:#{1,6}[ \\t]+)?$_ordinal[ \\t]*(?:[：:][ \\t]*|\\r?\\n|\$)',
+  );
+
+  static String clean(String raw) =>
+      cleanAiText(raw).replaceFirst(_heading, '').trimLeft();
+
   static String finalize({
     required String requestId,
     required String stage,
@@ -43,7 +55,7 @@ class NovelAiResponse {
       throw error;
     }
 
-    final finalText = cleanAiText(adapterText);
+    final finalText = clean(adapterText);
     if (finalText.isEmpty) {
       final error = AiProviderInvalidResponseException.empty(
         emptyKind: AiEmptyResponseKind.parserEmpty,

@@ -8,9 +8,9 @@ import '../../../app/widgets/ibuki_glass_surface.dart';
 import '../../../application/providers/repository_providers.dart';
 import '../../../domain/chat/chat_memory_entry.dart';
 import '../../../domain/chat/chat_memory_state.dart';
-import '../../../application/memory/chat_memory_service.dart';
 import 'chat_memory_overview.dart';
 import 'chat_memory_widgets.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class ChatMemoryPage extends ConsumerStatefulWidget {
   const ChatMemoryPage({
@@ -55,12 +55,16 @@ class _ChatMemoryPageState extends ConsumerState<ChatMemoryPage> {
         key: const Key('chat-memory-page'),
         appBar: AppBar(
           leading: const BackButton(),
-          title: Text(widget.summaryView ? '会话摘要' : '长期记忆'),
+          title: Text(
+            widget.summaryView ? context.tr("会话摘要") : context.tr("长期记忆"),
+          ),
           actions: [
             if (sessionId != null)
               IconButton(
                 key: const Key('toggle-deleted-memory'),
-                tooltip: _showDeleted ? '查看有效记忆' : '已删除记忆',
+                tooltip: _showDeleted
+                    ? context.tr("查看有效记忆")
+                    : context.tr("已删除记忆"),
                 onPressed: () => setState(() => _showDeleted = !_showDeleted),
                 icon: Icon(
                   _showDeleted
@@ -72,7 +76,7 @@ class _ChatMemoryPageState extends ConsumerState<ChatMemoryPage> {
         ),
         body: entries.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, _) => const Center(child: Text('无法读取长期记忆。')),
+          error: (_, _) => Center(child: Text(context.tr("无法读取长期记忆。"))),
           data: (items) => ListView(
             padding: const EdgeInsets.all(AppTokens.spacingM),
             children: [
@@ -87,7 +91,9 @@ class _ChatMemoryPageState extends ConsumerState<ChatMemoryPage> {
                     Expanded(
                       child: IbukiSecondaryButton(
                         key: const Key('organize-chat-memory'),
-                        label: _organizing ? '正在整理' : '整理会话',
+                        label: _organizing
+                            ? context.tr("正在整理")
+                            : context.tr("立即压缩会话"),
                         icon: Icons.auto_awesome_outlined,
                         onPressed: _organizing ? null : _organize,
                       ),
@@ -95,7 +101,7 @@ class _ChatMemoryPageState extends ConsumerState<ChatMemoryPage> {
                     const SizedBox(width: AppTokens.spacingS),
                     IbukiPrimaryButton(
                       key: const Key('add-chat-memory'),
-                      label: '添加',
+                      label: context.tr("添加"),
                       icon: Icons.add_rounded,
                       onPressed: () => _edit(null),
                     ),
@@ -114,7 +120,11 @@ class _ChatMemoryPageState extends ConsumerState<ChatMemoryPage> {
                 Padding(
                   padding: const EdgeInsets.all(AppTokens.spacingXl),
                   child: Center(
-                    child: Text(_showDeleted ? '没有已删除记忆。' : '还没有长期记忆。'),
+                    child: Text(
+                      _showDeleted
+                          ? context.tr("没有已删除记忆。")
+                          : context.tr("还没有长期记忆。"),
+                    ),
                   ),
                 )
               else
@@ -183,14 +193,9 @@ class _ChatMemoryPageState extends ConsumerState<ChatMemoryPage> {
       final result = await ref
           .read(chatMemoryServiceProvider)
           .organize(sessionId, force: true);
+      if (!mounted) return;
       _refresh();
-      _message(switch (result) {
-        ChatMemoryOrganizationResult.completed => '本会话记忆已整理。',
-        ChatMemoryOrganizationResult.insufficient => '没有需要整理的新消息。',
-        ChatMemoryOrganizationResult.disabled => '记忆已暂停或关闭，请先调整本会话设置。',
-        ChatMemoryOrganizationResult.changed => '整理期间内容已改变，本次结果未写入，请重试。',
-        ChatMemoryOrganizationResult.failed => '整理失败，请检查模型配置后重试。聊天记录已保留。',
-      });
+      _message(context.tr(chatMemoryOrganizationMessage(result)));
     } catch (_) {
       _message('整理失败，聊天记录不受影响，可以稍后重试。');
     } finally {
@@ -232,7 +237,7 @@ class _ChatMemoryPageState extends ConsumerState<ChatMemoryPage> {
                 ],
                 onChanged: (value) =>
                     setSheetState(() => category = value ?? category),
-                decoration: const InputDecoration(labelText: '类别'),
+                decoration: InputDecoration(labelText: context.tr("类别")),
               ),
               const SizedBox(height: AppTokens.spacingS),
               TextFormField(
@@ -242,17 +247,17 @@ class _ChatMemoryPageState extends ConsumerState<ChatMemoryPage> {
                 maxLines: 8,
                 maxLength: 4000,
                 onChanged: (value) => content = value,
-                decoration: const InputDecoration(labelText: '记忆内容'),
+                decoration: InputDecoration(labelText: context.tr("记忆内容")),
               ),
               SwitchListTile(
-                title: const Text('固定记忆'),
-                subtitle: const Text('自动整理不会覆盖或删除。'),
+                title: Text(context.tr("固定记忆")),
+                subtitle: Text(context.tr("自动整理不会覆盖或删除。")),
                 value: pinned,
                 onChanged: (value) => setSheetState(() => pinned = value),
               ),
               IbukiPrimaryButton(
                 key: const Key('save-chat-memory'),
-                label: saving ? '保存中' : '保存',
+                label: saving ? context.tr("保存中") : context.tr("保存"),
                 icon: Icons.save_outlined,
                 expand: true,
                 onPressed: saving
@@ -412,22 +417,37 @@ class _MemoryRow extends StatelessWidget {
                   if (value == 'source') onSource();
                 },
                 itemBuilder: (_) => entry.deletedAt != null
-                    ? const [PopupMenuItem(value: 'restore', child: Text('恢复'))]
+                    ? [
+                        PopupMenuItem(
+                          value: 'restore',
+                          child: Text(context.tr("恢复")),
+                        ),
+                      ]
                     : [
-                        const PopupMenuItem(value: 'edit', child: Text('编辑')),
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Text(context.tr("编辑")),
+                        ),
                         PopupMenuItem(
                           value: 'pin',
-                          child: Text(entry.isPinned ? '取消固定' : '固定'),
+                          child: Text(
+                            entry.isPinned
+                                ? context.tr("取消固定")
+                                : context.tr("固定"),
+                          ),
                         ),
-                        const PopupMenuItem(value: 'delete', child: Text('删除')),
-                        const PopupMenuItem(
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(context.tr("删除")),
+                        ),
+                        PopupMenuItem(
                           value: 'source',
-                          child: Text('查看原始来源'),
+                          child: Text(context.tr("查看原始来源")),
                         ),
                         if (suppressed)
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'restore',
-                            child: Text('允许引用'),
+                            child: Text(context.tr("允许引用")),
                           ),
                       ],
               ),

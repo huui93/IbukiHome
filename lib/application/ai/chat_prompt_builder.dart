@@ -1,12 +1,17 @@
+import 'dart:convert';
+import 'dart:math' as math;
+
+import '../../core/network/ai_provider_exceptions.dart';
 import '../../domain/ai/ai_generation.dart';
 import '../../domain/chat/chat_message.dart';
 import '../../domain/chat/chat_message_role.dart';
 import '../../domain/chat/chat_persona.dart';
 import '../memory/chat_memory_context.dart';
+import '../memory/long_context_policy.dart';
 
 class ChatPromptBuilder {
   const ChatPromptBuilder({
-    this.recentMessageLimit = 30,
+    this.recentMessageLimit = ChatMemoryPolicy.recentRawMessageCount,
     this.outputTokenLimit = defaultOutputTokenLimit,
   });
 
@@ -21,15 +26,20 @@ class ChatPromptBuilder {
     required List<ChatMessage> messages,
     ChatMemoryContext memory = const ChatMemoryContext(),
   }) {
-    final active = messages
-        .where(
-          (item) =>
-              item.deletedAt == null &&
-              item.content.trim().isNotEmpty &&
-              item.role != ChatMessageRole.system,
-        )
-        .toList(growable: false);
-    final limit = recentMessageLimit.clamp(4, 40);
+    bool eligible(ChatMessage message) =>
+        message.deletedAt == null &&
+        message.content.trim().isNotEmpty &&
+        message.role != ChatMessageRole.system &&
+        !memory.excludedRawMessageIds.contains(message.id);
+
+    final active = messages.where(eligible).toList(growable: false);
+    final start = messages.indexWhere(
+      (item) => item.id == memory.continuityStartMessageId,
+    );
+    final limit = math.max(
+      recentMessageLimit.clamp(4, 40),
+      start < 0 ? 0 : messages.skip(start).where(eligible).length.clamp(0, 120),
+    );
     final recent = active.length <= limit
         ? active
         : active.sublist(active.length - limit);
@@ -56,6 +66,63 @@ class ChatPromptBuilder {
       maxTokens: outputTokenLimit,
     );
   }
+
+  /// Caps the complete text request, including plugin instructions and
+  /// continuation. Keep the last user message intact or report the limit.
+  AiGenerationRequest fitToModel(
+    AiGenerationRequest request, {
+    required int presetMessageCount,
+    required bool continuation,
+    ({int context, int output})? limits,
+  }) {
+    final context = limits?.context ?? 16384;
+    final output = math.min(
+      request.maxTokens ?? outputTokenLimit,
+      math.min(limits?.output ?? outputTokenLimit, context ~/ 2),
+    );
+    final budget = math.min(24576, context - output - 128);
+    final all = request.messages;
+    final messageCosts = [
+      for (final item in all) _estimatedTokens(item.content) + 6,
+    ];
+    var remaining =
+        budget -
+        _estimatedTokens(request.systemPrompt) -
+        _estimatedTokens(request.assistantPrefill ?? '');
+    final historyStart = math.min(presetMessageCount, all.length);
+    final requiredStart = math.max(
+      historyStart,
+      all.length - (continuation ? 3 : 1),
+    );
+    for (var index = requiredStart; index < all.length; index++) {
+      remaining -= messageCosts[index];
+    }
+    if (remaining < 0) {
+      throw const AiProviderValidationException(
+        '当前消息、人格提示词和记忆超过此模型的上下文额度，请缩短后重试。',
+      );
+    }
+    var firstHistory = requiredStart;
+    while (firstHistory > historyStart &&
+        messageCosts[firstHistory - 1] <= remaining) {
+      firstHistory--;
+      remaining -= messageCosts[firstHistory];
+    }
+    var exampleEnd = 0;
+    while (exampleEnd + 1 < historyStart) {
+      final cost = messageCosts[exampleEnd] + messageCosts[exampleEnd + 1];
+      if (cost > remaining) break;
+      remaining -= cost;
+      exampleEnd += 2;
+    }
+    return request.copyWith(
+      maxTokens: output,
+      messages: [...all.take(exampleEnd), ...all.skip(firstHistory)],
+    );
+  }
+
+  int _estimatedTokens(String content) =>
+      (utf8.encode(content).length + 1) ~/ 2;
 
   String _systemPrompt(ChatPersona persona, ChatMemoryContext memory) {
     final details = <String>[

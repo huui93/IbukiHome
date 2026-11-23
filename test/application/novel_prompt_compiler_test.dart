@@ -226,7 +226,11 @@ void main() {
         authorInput: '短输入',
         modelContextLimit: 800,
         modelOutputLimit: 256,
+        projectOutputTokenLimit: 300,
+        projectTemperature: .4,
       );
+      expect(result.request.temperature, .4);
+      expect(result.requested['projectOutputTokenLimit'], 300);
       expect(result.request.systemPrompt, contains('{{user}}'));
       expect(result.effective['contextTokens'], 800);
       expect(result.request.maxTokens, 256);

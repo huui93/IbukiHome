@@ -320,6 +320,53 @@ void main() {
   });
 
   group('ChatPromptBuilder', () {
+    test(
+      'context budgeting keeps the newest message and complete examples',
+      () {
+        const builder = ChatPromptBuilder();
+        final current = AiGenerationRequest(
+          requestId: 'budget-test',
+          systemPrompt: 'persona rules',
+          maxTokens: 8192,
+          messages: [
+            const AiGenerationMessage(
+              role: AiMessageRole.user,
+              content: 'example input',
+            ),
+            const AiGenerationMessage(
+              role: AiMessageRole.assistant,
+              content: 'example output',
+            ),
+            AiGenerationMessage(
+              role: AiMessageRole.user,
+              content: 'oversize text ' * 300,
+            ),
+            const AiGenerationMessage(
+              role: AiMessageRole.assistant,
+              content: 'recent reply',
+            ),
+            const AiGenerationMessage(
+              role: AiMessageRole.user,
+              content: 'latest input',
+            ),
+          ],
+        );
+        final bounded = builder.fitToModel(
+          current,
+          presetMessageCount: 2,
+          continuation: false,
+          limits: (context: 2048, output: 512),
+        );
+        expect(bounded.maxTokens, 512);
+        expect(bounded.messages.map((m) => m.content), [
+          'example input',
+          'example output',
+          'recent reply',
+          'latest input',
+        ]);
+      },
+    );
+
     test('chat prompt never receives project system prompt', () {
       final project = _project(systemPrompt: 'NOVEL_ONLY_SYSTEM_PROMPT');
       final request = _chat().build(

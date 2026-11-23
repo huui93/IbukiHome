@@ -262,6 +262,7 @@ class InMemoryNovelPluginRepository implements NovelPluginRepository {
           projectId: newProjectId,
           minimum: limits.minimum,
           maximum: limits.maximum,
+          temperature: limits.temperature,
         ),
         expectedRevision: 0,
         now: now,

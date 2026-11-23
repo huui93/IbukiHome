@@ -27,7 +27,7 @@ void main() {
   test('schema version migrates from v4 to v5', () async {
     final db = await fixture.database.database;
     expect(await db.getVersion(), SqliteSchema.version);
-    expect(SqliteSchema.version, 21);
+    expect(SqliteSchema.version, 22);
   });
 
   test('v4 project and system prompt survive migration', () async {

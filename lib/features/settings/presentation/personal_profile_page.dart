@@ -9,6 +9,7 @@ import '../../../app/widgets/ibuki_glass_surface.dart';
 import '../../../application/profile/local_user_profile.dart';
 import '../../../application/profile/profile_avatar_picker.dart';
 import 'local_user_avatar.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class PersonalProfilePage extends ConsumerStatefulWidget {
   const PersonalProfilePage({super.key});
@@ -49,7 +50,7 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
         child: Scaffold(
           key: const Key('personal-profile-page'),
           appBar: AppBar(
-            title: const Text('本人设定'),
+            title: Text(context.tr("本人设定")),
             leading: BackButton(onPressed: _saving || _picking ? null : _leave),
           ),
           body: value.when(
@@ -57,7 +58,7 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
             error: (_, _) => Center(
               child: TextButton(
                 onPressed: () => ref.invalidate(localUserProfileProvider),
-                child: const Text('读取失败，点击重试'),
+                child: Text(context.tr("读取失败，点击重试")),
               ),
             ),
             data: (profile) {
@@ -88,7 +89,11 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
                         key: const Key('pick-personal-avatar'),
                         onPressed: _saving || _picking ? null : _pick,
                         icon: const Icon(Icons.photo_library_outlined),
-                        label: Text(_picking ? '正在读取图片' : '选择头像图片'),
+                        label: Text(
+                          _picking
+                              ? context.tr("正在读取图片")
+                              : context.tr("选择头像图片"),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -133,15 +138,15 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
                         enabled: !_saving,
                         maxLength: 40,
                         textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(
-                          labelText: '名字',
-                          hintText: '你希望显示的名字',
+                        decoration: InputDecoration(
+                          labelText: context.tr("名字"),
+                          hintText: context.tr("你希望显示的名字"),
                         ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '头像和名字会显示在聊天页左上角。',
+                      context.tr("头像和名字会显示在聊天页左上角。"),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     if (_error != null)
@@ -158,7 +163,9 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
                     FilledButton(
                       key: const Key('save-personal-profile'),
                       onPressed: _saving || _picking ? null : _save,
-                      child: Text(_saving ? '保存中' : '保存'),
+                      child: Text(
+                        _saving ? context.tr("保存中") : context.tr("保存"),
+                      ),
                     ),
                   ],
                 ),
@@ -178,15 +185,15 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
         final discard = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: const Text('放弃未保存的修改？'),
+            title: Text(dialogContext.tr("放弃未保存的修改？")),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('继续编辑'),
+                child: Text(dialogContext.tr("继续编辑")),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('放弃'),
+                child: Text(dialogContext.tr("放弃")),
               ),
             ],
           ),

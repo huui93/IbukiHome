@@ -42,7 +42,7 @@ void main() {
       await f.database.close();
       final reopened = await reopenFixture(f);
       final repo = SQLiteChatControlsRepository(reopened.database);
-      expect(await (await reopened.database.database).getVersion(), 21);
+      expect(await (await reopened.database.database).getVersion(), 22);
       expect(
         (await reopened.chatRepository.listMessages('a')).single.content,
         'u',

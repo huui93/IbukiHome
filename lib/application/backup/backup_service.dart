@@ -11,7 +11,7 @@ class BackupService {
     required this.assets,
     required this.codec,
     required this.operationGuard,
-    this.appVersion = '1.0.0',
+    this.appVersion = '1.1.0',
     this.schemaVersion = 15,
   });
 

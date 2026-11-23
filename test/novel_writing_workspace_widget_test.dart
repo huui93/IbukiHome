@@ -453,6 +453,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('novel-output-limits-page')), findsOneWidget);
       await tester.enterText(
+        find.byKey(const Key('novel-output-temperature')),
+        '0,35',
+      );
+      await tester.enterText(
         find.byKey(const Key('novel-output-minimum')),
         '500',
       );
@@ -491,6 +495,7 @@ void main() {
           .get('project-1');
       expect(second.minimum, isNull);
       expect(second.maximum, 800);
+      expect(second.temperature, .35);
       await tester.tap(find.byKey(const Key('reset-novel-output-limits')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('save-novel-output-limits')));

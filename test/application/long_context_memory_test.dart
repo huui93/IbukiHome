@@ -331,7 +331,7 @@ void main() {
         instruction: '',
         memory: NovelMemoryContext(recentChunks: [_chunk('chunk-1')]),
       );
-      expect(prompt.systemPrompt, contains('第 1-20 段摘要'));
+      expect(prompt.systemPrompt, contains('往事摘要'));
       expect(prompt.systemPrompt, contains('摘要 1'));
     });
 
@@ -588,7 +588,7 @@ void main() {
 
     test('automatic extraction creates memory after threshold', () async {
       final fixture = _ChatFixture.withMessages(
-        50,
+        100,
         outputs: ['较早对话摘要', '[{"category":"preference","content":"用户不喜欢苦咖啡"}]'],
       );
       await fixture.service.organize('session-1');
@@ -597,7 +597,7 @@ void main() {
 
     test('exact duplicate automatic memory is not inserted twice', () async {
       final fixture = _ChatFixture.withMessages(
-        50,
+        100,
         outputs: [
           'summary',
           '[{"category":"preference","content":"用户不喜欢苦咖啡"}]',
@@ -616,17 +616,23 @@ void main() {
     });
 
     test('ConversationSummary is created with source range', () async {
-      final fixture = _ChatFixture.withMessages(50, outputs: ['summary', '[]']);
+      final fixture = _ChatFixture.withMessages(
+        100,
+        outputs: ['summary', '[]'],
+      );
       await fixture.service.organize('session-1');
       final summary = (await fixture.memories.listSummaries(
         'session-1',
       )).single;
       expect(summary.sourceStartMessageId, 'message-0');
-      expect(summary.sourceEndMessageId, 'message-19');
+      expect(summary.sourceEndMessageId, 'message-99');
     });
 
     test('ConversationSummary stores fingerprint', () async {
-      final fixture = _ChatFixture.withMessages(50, outputs: ['summary', '[]']);
+      final fixture = _ChatFixture.withMessages(
+        100,
+        outputs: ['summary', '[]'],
+      );
       await fixture.service.organize('session-1');
       expect(
         (await fixture.memories.listSummaries(
@@ -638,11 +644,14 @@ void main() {
 
     test('valid summary acts as a watermark', () async {
       final fixture = _ChatFixture.withMessages(
-        70,
+        20,
         outputs: ['summary-1', '[]', 'summary-2', '[]'],
       );
-      await fixture.service.organize('session-1');
-      await fixture.service.organize('session-1');
+      await fixture.service.organize('session-1', force: true);
+      for (var index = 20; index < 40; index++) {
+        await fixture.chats.appendMessage(_message(index));
+      }
+      await fixture.service.organize('session-1', force: true);
       final summaries = await fixture.memories.listSummaries('session-1');
       expect(summaries, hasLength(2));
       expect(summaries.last.sourceStartMessageId, 'message-20');
@@ -682,27 +691,34 @@ void main() {
       expect(values.single.category, ChatMemoryCategory.userFact);
     });
 
-    test('invalid extractor JSON writes no memory', () async {
-      final fixture = _ChatFixture.withMessages(
-        50,
-        outputs: ['summary', 'not-json'],
-      );
-      await fixture.service.organize('session-1');
-      expect(await fixture.memories.listEntries('persona-1'), isEmpty);
-    });
+    test(
+      'invalid extractor JSON keeps the summary without inventing a fact',
+      () async {
+        final fixture = _ChatFixture.withMessages(
+          100,
+          outputs: ['summary', 'not-json'],
+        );
+        expect(
+          await fixture.service.organize('session-1'),
+          ChatMemoryOrganizationResult.summarySaved,
+        );
+        expect(await fixture.memories.listEntries('persona-1'), isEmpty);
+        expect(await fixture.memories.listSummaries('session-1'), hasLength(1));
+      },
+    );
 
     test('extraction failure does not delete chat messages', () async {
       final fixture = _ChatFixture.withMessages(
-        50,
+        100,
         outputs: ['summary', 'not-json'],
       );
       await fixture.service.organize('session-1');
-      expect(await fixture.chats.listMessages('session-1'), hasLength(50));
+      expect(await fixture.chats.listMessages('session-1'), hasLength(100));
     });
 
     test('auto memory disabled still creates conversation summary', () async {
       final fixture = _ChatFixture.withMessages(
-        50,
+        100,
         outputs: ['summary'],
         autoMemory: false,
       );
@@ -816,7 +832,7 @@ void main() {
     test('same session has one in-flight organization job', () async {
       final gate = Completer<void>();
       final fixture = _ChatFixture.withMessages(
-        50,
+        100,
         outputs: ['summary', '[]'],
         gate: gate,
       );
@@ -837,7 +853,10 @@ void main() {
     });
 
     test('chat source messages remain intact after summarization', () async {
-      final fixture = _ChatFixture.withMessages(50, outputs: ['summary', '[]']);
+      final fixture = _ChatFixture.withMessages(
+        100,
+        outputs: ['summary', '[]'],
+      );
       final before = await fixture.chats.listMessages('session-1');
       await fixture.service.organize('session-1');
       final after = await fixture.chats.listMessages('session-1');
@@ -846,7 +865,7 @@ void main() {
 
     test('automatic memory keeps source range for traceability', () async {
       final fixture = _ChatFixture.withMessages(
-        50,
+        100,
         outputs: [
           'summary',
           '[{"category":"ongoingMatter","content":"下次继续聊小说"}]',
@@ -855,7 +874,7 @@ void main() {
       await fixture.service.organize('session-1');
       final entry = (await fixture.memories.listEntries('persona-1')).single;
       expect(entry.sourceStartMessageId, 'message-0');
-      expect(entry.sourceEndMessageId, 'message-19');
+      expect(entry.sourceEndMessageId, 'message-99');
     });
 
     test('memory extractor prompt prohibits inference', () {

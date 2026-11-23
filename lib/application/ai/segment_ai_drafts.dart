@@ -1,3 +1,4 @@
+import '../../domain/projects/novel_output_limits.dart';
 import '../../data/repositories/novel_output_limits_repository.dart';
 // ignore_for_file: prefer_initializing_formals
 
@@ -15,6 +16,7 @@ import 'ai_draft_update.dart';
 import 'ai_generation_service.dart';
 import 'ai_request_coordinator.dart';
 import 'clean_ai_text.dart';
+import 'novel_output_policy.dart';
 import 'novel_context_loader.dart';
 import 'novel_ai_response.dart';
 import 'novel_prompt_builder.dart';
@@ -323,6 +325,8 @@ class SegmentAiDraftRunner {
     AiFinishReason? finishReason;
     var streamEventCount = 0;
     String? pluginNotice;
+    NovelOutputLimits? outputLimitsForCancellation;
+    var structuredReply = false;
     try {
       final context = await _contextLoader.load(
         projectId: projectId,
@@ -375,9 +379,11 @@ class SegmentAiDraftRunner {
         ),
         _ => throw const DataConflictException('不支持这个段落 AI 操作。'),
       };
-      final outputLimits = operation == NovelAiOperation.selectionModify
-          ? null
-          : await _outputLimits?.get(projectId);
+      final settings = await _outputLimits?.get(projectId);
+      final applyLength = operation != NovelAiOperation.selectionModify;
+      final outputLimits = applyLength ? settings : null;
+      outputLimitsForCancellation = outputLimits;
+      structuredReply = binding != null;
       final system = binding == null
           ? prompt.systemPrompt
           : _promptBuilder.structuredSystem(
@@ -386,7 +392,7 @@ class SegmentAiDraftRunner {
             );
       final coreRequest = AiGenerationRequest(
         requestId: requestId,
-        systemPrompt: '$system${outputLimits?.promptSuffix ?? ''}',
+        systemPrompt: system,
         messages: [
           AiGenerationMessage(
             role: AiMessageRole.user,
@@ -394,7 +400,7 @@ class SegmentAiDraftRunner {
           ),
         ],
         temperature: 0.7,
-        maxTokens: outputLimits?.isDefault == false ? null : 2400,
+        maxTokens: novelDefaultOutputTokens,
       );
       var request = coreRequest;
       final pipeline = _promptPipeline;
@@ -431,6 +437,17 @@ class SegmentAiDraftRunner {
         providerConfigId: selected?.providerConfigId,
         model: selected?.model,
       );
+      final limits = binding == null && selected != null
+          ? await host?.modelLimits?.call(selected)
+          : null;
+      request = applyNovelOutputSettings(
+        request: request,
+        settings: settings,
+        model: selected,
+        applyLength: applyLength,
+        structured: binding != null,
+        modelOutputLimit: limits?.output,
+      );
       final run = binding == null
           ? null
           : await host!.prepare(
@@ -438,6 +455,8 @@ class SegmentAiDraftRunner {
               context: context,
               core: request,
               model: selected,
+              projectTemperature: settings?.temperature,
+              projectOutputTokenLimit: novelOutputTokenCeiling(outputLimits),
               authorInput: prompt.userPrompt,
               instruction: instruction,
               mode: NovelGenerationMode.regenerate,
@@ -468,7 +487,13 @@ class SegmentAiDraftRunner {
           lastYield = now;
           yield AiDraftUpdate(
             requestId: requestId,
-            draft: draft.toString(),
+            draft: run == null
+                ? enforceNovelOutputLength(
+                    NovelAiResponse.clean(draft.toString()),
+                    outputLimits,
+                    structured: false,
+                  ).text
+                : draft.toString(),
             status: AiDraftStatus.streaming,
             pluginNotice: pluginNotice,
           );
@@ -490,7 +515,7 @@ class SegmentAiDraftRunner {
           throw const AiProviderCancelledException();
         }
       }
-      final content = NovelAiResponse.finalize(
+      final decoded = NovelAiResponse.finalize(
         requestId: requestId,
         stage: operation.name,
         adapterText: run == null
@@ -501,6 +526,12 @@ class SegmentAiDraftRunner {
         provider: selected?.providerType,
         model: selected?.model,
       );
+      final output = enforceNovelOutputLength(
+        decoded,
+        outputLimits,
+        structured: run != null,
+      );
+      final content = output.text;
       if (run != null && operation != NovelAiOperation.selectionModify) {
         _drafts[requestId] = _NovelStagedDraft(
           run,
@@ -508,7 +539,7 @@ class SegmentAiDraftRunner {
           target.revision,
           draft.toString(),
           content,
-          finishReason,
+          output.trimmed ? AiFinishReason.length : finishReason,
         );
         if (_drafts.length > 8) _drafts.remove(_drafts.keys.first);
       }
@@ -516,6 +547,7 @@ class SegmentAiDraftRunner {
         requestId: requestId,
         draft: content,
         status: AiDraftStatus.completed,
+        outputNotice: output.notice,
         pluginNotice: pluginNotice,
       );
     } on AiProviderInvalidResponseException catch (error) {
@@ -536,7 +568,11 @@ class SegmentAiDraftRunner {
     } on AiProviderCancelledException {
       yield AiDraftUpdate(
         requestId: requestId,
-        draft: cleanAiText(draft.toString()),
+        draft: enforceNovelOutputLength(
+          NovelAiResponse.clean(draft.toString()),
+          outputLimitsForCancellation,
+          structured: structuredReply,
+        ).text,
         status: AiDraftStatus.cancelled,
         pluginNotice: pluginNotice,
       );

@@ -47,7 +47,7 @@ void main() {
       await db.setVersion(20);
       await f.database.close();
       final reopened = await reopenFixture(f);
-      expect(await (await reopened.database.database).getVersion(), 21);
+      expect(await (await reopened.database.database).getVersion(), 22);
       final repo = SQLiteNovelPluginRepository(reopened.database);
       final before = await reopened.segments.listSegments('story');
       final h = await repo.history('story');

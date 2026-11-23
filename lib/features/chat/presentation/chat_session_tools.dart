@@ -6,6 +6,7 @@ import '../../../application/chat/chat_controls_providers.dart';
 import '../../../application/providers/repository_providers.dart';
 import '../../../data/ai/ai_reasoning_parameters.dart';
 import '../../../domain/ai/ai_reasoning_level.dart';
+import '../../../app/localization/app_localizations.dart';
 
 enum ChatTool {
   image,
@@ -46,7 +47,7 @@ Future<ChatTool?> showChatTools(
           child: ListTile(
             key: Key('chat-tool-${item.$1.name}'),
             leading: Icon(item.$2),
-            title: Text(item.$3),
+            title: Text(dialogContext.tr(item.$3)),
             enabled: switch (item.$1) {
               ChatTool.summary || ChatTool.usage => true,
               ChatTool.delete => !busy && canDelete,
@@ -68,13 +69,13 @@ Future<void> showChatReasoning(
 ) async {
   final current = await ref.read(chatReasoningLevelProvider(sessionId).future);
   var levels = <AiReasoningLevel>[AiReasoningLevel.automatic];
-  String label = '先为当前会话配置 AI 模型。';
+  String? modelLabel;
   try {
     final model = await ref
         .read(aiModelResolverProvider)
         .resolveForChatSession(sessionId);
     levels = reasoningLevels(model.providerType, model.model);
-    label = model.displayLabel;
+    modelLabel = model.displayLabel;
   } catch (_) {}
   if (!context.mounted) return;
   final selected = await showModalBottomSheet<AiReasoningLevel>(
@@ -86,27 +87,32 @@ Future<void> showChatReasoning(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(title: const Text('推理等级'), subtitle: Text(label)),
-            const Padding(
+            ListTile(
+              title: Text(context.tr("推理等级")),
+              subtitle: Text(modelLabel ?? sheet.tr('先为当前会话配置 AI 模型。')),
+            ),
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                '默认沿用当前服务的兼容配置。部分模型只有开关；旧版 Claude 和 Gemini 2.5 的等级按思考预算映射。',
+                context.tr(
+                  "默认沿用当前服务的兼容配置。部分模型只有开关；旧版 Claude 和 Gemini 2.5 的等级按思考预算映射。",
+                ),
               ),
             ),
             if (levels.length == 1)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text('当前模型没有已适配的推理设置，使用服务默认行为。'),
+                child: Text(context.tr("当前模型没有已适配的推理设置，使用服务默认行为。")),
               ),
             if (!levels.contains(current))
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text('已保存的等级不适用于当前模型，本次请求使用默认行为。'),
+                child: Text(context.tr("已保存的等级不适用于当前模型，本次请求使用默认行为。")),
               ),
             for (final level in levels)
               ListTile(
                 key: Key('chat-reasoning-${level.name}'),
-                title: Text(level.label),
+                title: Text(sheet.tr(level.label)),
                 trailing: current == level
                     ? const Icon(Icons.check_rounded)
                     : null,

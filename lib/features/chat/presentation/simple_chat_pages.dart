@@ -37,6 +37,7 @@ import '../../../application/chat/chat_image_picker.dart';
 import '../../../domain/chat/chat_image.dart';
 import '../../../app/widgets/ibuki_action_menu.dart';
 import '../../../app/widgets/ibuki_motion_widgets.dart';
+import '../../../app/localization/app_localizations.dart';
 
 enum _ChatCreationAction { persona, session, edit }
 
@@ -59,7 +60,7 @@ Future<void> showChatCreationMenu(BuildContext context) async {
             child: ListTile(
               key: Key('chat-menu-${entry.$1.name}'),
               leading: Icon(entry.$3),
-              title: Text(entry.$2),
+              title: Text(dialogContext.tr(entry.$2)),
               onTap: () => Navigator.pop(dialogContext, entry.$1),
             ),
           ),
@@ -93,17 +94,17 @@ class _ChatMessagesTab extends ConsumerWidget {
     return sessions.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, _) => _ChatErrorView(
-        message: '消息列表暂时无法读取。',
+        message: context.tr("消息列表暂时无法读取。"),
         onRetry: () => ref.invalidate(chatSessionListProvider),
       ),
       data: (items) {
         final visible = items;
         if (visible.isEmpty) {
-          return const _ChatEmptyView(
+          return _ChatEmptyView(
             key: Key('empty-chat-sessions-state'),
             icon: Icons.forum_outlined,
-            title: '还没有消息',
-            message: '点击右上角 +，添加人格或会话。',
+            title: context.tr("还没有消息"),
+            message: context.tr("点击右上角 +，添加人格或会话。"),
           );
         }
         return RefreshIndicator(
@@ -181,7 +182,8 @@ class _ConversationTile extends ConsumerWidget {
                 ),
               ),
             Text(
-              lastMessage?.content ?? (persona == null ? '旧会话' : '还没有消息'),
+              lastMessage?.content ??
+                  (persona == null ? context.tr("旧会话") : context.tr("还没有消息")),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -221,8 +223,8 @@ class _ChatPersonaPickerPageState extends ConsumerState<ChatPersonaPickerPage> {
           appBar: AppBar(
             title: Text(
               widget.purpose == ChatPersonaPickerPurpose.edit
-                  ? '修改人格'
-                  : '选择聊天对象',
+                  ? context.tr("修改人格")
+                  : context.tr("选择聊天对象"),
             ),
             leading: BackButton(
               onPressed: _creating
@@ -239,7 +241,7 @@ class _ChatPersonaPickerPageState extends ConsumerState<ChatPersonaPickerPage> {
           body: contacts.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) => _ChatErrorView(
-              message: '联系人暂时无法读取。',
+              message: context.tr("联系人暂时无法读取。"),
               onRetry: () => ref.invalidate(chatPersonaListProvider),
             ),
             data: (items) {
@@ -261,8 +263,8 @@ class _ChatPersonaPickerPageState extends ConsumerState<ChatPersonaPickerPage> {
                             key: const Key('contact-search-field'),
                             onChanged: (value) =>
                                 setState(() => _query = value),
-                            decoration: const InputDecoration(
-                              hintText: '搜索聊天角色',
+                            decoration: InputDecoration(
+                              hintText: context.tr("搜索聊天角色"),
                               prefixIcon: Icon(Icons.search_rounded),
                               isDense: true,
                             ),
@@ -271,7 +273,7 @@ class _ChatPersonaPickerPageState extends ConsumerState<ChatPersonaPickerPage> {
                         const SizedBox(width: 4),
                         IconButton(
                           key: const Key('add-chat-persona'),
-                          tooltip: '添加聊天角色',
+                          tooltip: context.tr("添加聊天角色"),
                           onPressed: _creating ? null : _showCreateOptions,
                           icon: const Icon(Icons.add_rounded),
                         ),
@@ -283,9 +285,9 @@ class _ChatPersonaPickerPageState extends ConsumerState<ChatPersonaPickerPage> {
                         ? _ChatEmptyView(
                             key: const Key('empty-chat-contacts'),
                             icon: Icons.people_outline_rounded,
-                            title: '还没有可以聊天的角色',
-                            message: '快速写几句话，就可以创建一个新的聊天角色。',
-                            actionLabel: '创建聊天角色',
+                            title: context.tr("还没有可以聊天的角色"),
+                            message: context.tr("快速写几句话，就可以创建一个新的聊天角色。"),
+                            actionLabel: context.tr("创建聊天角色"),
                             onAction: _showCreateOptions,
                           )
                         : ListView.separated(
@@ -359,8 +361,8 @@ class _ChatPersonaPickerPageState extends ConsumerState<ChatPersonaPickerPage> {
               ListTile(
                 key: const Key('create-new-chat-persona'),
                 leading: const Icon(Icons.person_add_alt_1_rounded),
-                title: const Text('新建聊天角色'),
-                subtitle: const Text('填写名字和人格提示词'),
+                title: Text(sheetContext.tr("新建聊天角色")),
+                subtitle: Text(sheetContext.tr("填写名字和人格提示词")),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   context.push(AppRoutes.newChatPersona);
@@ -369,8 +371,8 @@ class _ChatPersonaPickerPageState extends ConsumerState<ChatPersonaPickerPage> {
               ListTile(
                 key: const Key('deleted-chat-personas'),
                 leading: const Icon(Icons.restore_from_trash_outlined),
-                title: const Text('已删除聊天角色'),
-                subtitle: const Text('恢复保留的角色与历史会话'),
+                title: Text(sheetContext.tr("已删除聊天角色")),
+                subtitle: Text(sheetContext.tr("恢复保留的角色与历史会话")),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   context.push(AppRoutes.deletedChatPersonas);
@@ -413,7 +415,7 @@ class _PersonaTile extends StatelessWidget {
         ),
         subtitle: Text(
           persona.unifiedPrompt.trim().isEmpty
-              ? '还没有填写人格提示词'
+              ? context.tr("还没有填写人格提示词")
               : persona.unifiedPrompt,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -452,30 +454,30 @@ class _ChatPersonaProfilePageState
               onPressed: _backToChat,
             ),
           ),
-          title: const Text('人格资料'),
+          title: Text(context.tr("人格资料")),
           actions: [
             IconButton(
               key: const Key('edit-chat-persona'),
-              tooltip: '修改人格',
+              tooltip: context.tr("修改人格"),
               onPressed: () =>
                   context.push(AppRoutes.editChatPersona(widget.personaId)),
               icon: const Icon(Icons.edit_outlined),
             ),
             PopupMenuButton<String>(
               key: const Key('chat-persona-more'),
-              tooltip: '更多',
+              tooltip: context.tr("更多"),
               onSelected: (value) {
                 if (value == 'delete') _confirmDelete();
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'delete', child: Text('删除角色')),
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'delete', child: Text(context.tr("删除角色"))),
               ],
             ),
           ],
         ),
         body: persona.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, _) => const _ChatErrorView(message: '没有找到这个聊天角色。'),
+          error: (_, _) => _ChatErrorView(message: context.tr("没有找到这个聊天角色。")),
           data: (persona) => ListView(
             key: const Key('character-chat-profile'),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -508,7 +510,7 @@ class _ChatPersonaProfilePageState
                           ? null
                           : () => _openChat(persona, createNew: true),
                       icon: const Icon(Icons.add_comment_outlined),
-                      label: const Text('新聊天'),
+                      label: Text(context.tr("新聊天")),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -528,7 +530,7 @@ class _ChatPersonaProfilePageState
                                 ),
                               )
                             : const Icon(Icons.chat_bubble_outline_rounded),
-                        label: const Text('继续聊天'),
+                        label: Text(context.tr("继续聊天")),
                       ),
                     ),
                   ),
@@ -539,7 +541,7 @@ class _ChatPersonaProfilePageState
                 onPressed: () =>
                     context.push(AppRoutes.editChatPersona(persona.id)),
                 icon: const Icon(Icons.edit_outlined),
-                label: const Text('编辑角色'),
+                label: Text(context.tr("编辑角色")),
               ),
             ],
           ),
@@ -585,16 +587,16 @@ class _ChatPersonaProfilePageState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('删除聊天角色？'),
-        content: const Text('角色会移到已删除列表，已有会话和消息仍会保留。'),
+        title: Text(dialogContext.tr("删除聊天角色？")),
+        content: Text(dialogContext.tr("角色会移到已删除列表，已有会话和消息仍会保留。")),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('取消'),
+            child: Text(dialogContext.tr("取消")),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('删除'),
+            child: Text(dialogContext.tr("删除")),
           ),
         ],
       ),
@@ -653,7 +655,7 @@ class _ChatPersonaSessionsPageState
           actions: [
             IconButton(
               key: const Key('toggle-deleted-persona-sessions'),
-              tooltip: _showDeleted ? '有效聊天' : '已删除聊天',
+              tooltip: _showDeleted ? context.tr("有效聊天") : context.tr("已删除聊天"),
               onPressed: () => setState(() => _showDeleted = !_showDeleted),
               icon: Icon(
                 _showDeleted
@@ -663,7 +665,7 @@ class _ChatPersonaSessionsPageState
             ),
             IconButton(
               key: const Key('new-persona-session'),
-              tooltip: '新聊天',
+              tooltip: context.tr("新聊天"),
               onPressed: _showDeleted || persona.value == null
                   ? null
                   : () => _create(persona.value!),
@@ -673,12 +675,16 @@ class _ChatPersonaSessionsPageState
         ),
         body: sessions.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, _) => const _ChatErrorView(message: '聊天列表暂时无法读取。'),
+          error: (_, _) => _ChatErrorView(message: context.tr("聊天列表暂时无法读取。")),
           data: (items) => items.isEmpty
               ? _ChatEmptyView(
                   icon: Icons.forum_outlined,
-                  title: _showDeleted ? '没有已删除聊天' : '还没有聊天',
-                  message: _showDeleted ? '删除的聊天会出现在这里。' : '创建一条独立的新聊天吧。',
+                  title: _showDeleted
+                      ? context.tr("没有已删除聊天")
+                      : context.tr("还没有聊天"),
+                  message: _showDeleted
+                      ? context.tr("删除的聊天会出现在这里。")
+                      : context.tr("创建一条独立的新聊天吧。"),
                 )
               : ListView.separated(
                   padding: const EdgeInsets.all(12),
@@ -702,21 +708,21 @@ class _ChatPersonaSessionsPageState
                         trailing: _showDeleted
                             ? TextButton(
                                 onPressed: () => _restore(session),
-                                child: const Text('恢复'),
+                                child: Text(context.tr("恢复")),
                               )
                             : PopupMenuButton<String>(
                                 onSelected: (value) {
                                   if (value == 'rename') _rename(session);
                                   if (value == 'delete') _delete(session);
                                 },
-                                itemBuilder: (_) => const [
+                                itemBuilder: (_) => [
                                   PopupMenuItem(
                                     value: 'rename',
-                                    child: Text('重命名'),
+                                    child: Text(context.tr("重命名")),
                                   ),
                                   PopupMenuItem(
                                     value: 'delete',
-                                    child: Text('删除'),
+                                    child: Text(context.tr("删除")),
                                   ),
                                 ],
                               ),
@@ -746,7 +752,7 @@ class _ChatPersonaSessionsPageState
     final value = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('重命名聊天'),
+        title: Text(dialogContext.tr("重命名聊天")),
         content: TextFormField(
           initialValue: title,
           autofocus: true,
@@ -755,11 +761,11 @@ class _ChatPersonaSessionsPageState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(dialogContext.tr("取消")),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, title),
-            child: const Text('保存'),
+            child: Text(dialogContext.tr("保存")),
           ),
         ],
       ),
@@ -814,17 +820,17 @@ class DeletedChatPersonasPage extends ConsumerWidget {
               }
             },
           ),
-          title: const Text('已删除聊天角色'),
+          title: Text(context.tr("已删除聊天角色")),
         ),
         body: personas.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, _) => const _ChatErrorView(message: '暂时无法读取已删除角色。'),
+          error: (_, _) => _ChatErrorView(message: context.tr("暂时无法读取已删除角色。")),
           data: (items) {
             if (items.isEmpty) {
-              return const _ChatEmptyView(
+              return _ChatEmptyView(
                 icon: Icons.person_off_outlined,
-                title: '没有已删除角色',
-                message: '删除的聊天角色会保留在这里，并可随时恢复。',
+                title: context.tr("没有已删除角色"),
+                message: context.tr("删除的聊天角色会保留在这里，并可随时恢复。"),
               );
             }
             return ListView.separated(
@@ -843,11 +849,11 @@ class DeletedChatPersonasPage extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    subtitle: const Text('已有会话和消息仍保留'),
+                    subtitle: Text(context.tr("已有会话和消息仍保留")),
                     trailing: TextButton(
                       key: Key('restore-persona-${persona.id}'),
                       onPressed: () => _restore(context, ref, persona.id),
-                      child: const Text('恢复'),
+                      child: Text(context.tr("恢复")),
                     ),
                   ),
                 );
@@ -876,7 +882,7 @@ class DeletedChatPersonasPage extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('聊天角色已恢复')));
+        ).showSnackBar(SnackBar(content: Text(context.tr("聊天角色已恢复"))));
       }
     } catch (error) {
       if (context.mounted) {
@@ -947,8 +953,9 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
         .when(
           loading: () =>
               const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (_, _) =>
-              const Scaffold(body: _ChatErrorView(message: '没有找到这个聊天人格。')),
+          error: (_, _) => Scaffold(
+            body: _ChatErrorView(message: context.tr("没有找到这个聊天人格。")),
+          ),
           data: (persona) {
             if (!_loaded) {
               _loaded = true;
@@ -980,12 +987,14 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
         key: const Key('chat-persona-editor'),
         appBar: AppBar(
           leading: BackButton(onPressed: _leave),
-          title: Text(widget.personaId == null ? '添加人格' : '修改人格'),
+          title: Text(
+            widget.personaId == null ? context.tr("添加人格") : context.tr("修改人格"),
+          ),
           actions: [
             TextButton(
               key: const Key('save-chat-persona'),
               onPressed: _saving || _picking ? null : _save,
-              child: const Text('保存'),
+              child: Text(context.tr("保存")),
             ),
           ],
         ),
@@ -1005,7 +1014,9 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
                 key: const Key('pick-persona-avatar'),
                 onPressed: _saving || _picking ? null : _pickAvatar,
                 icon: const Icon(Icons.photo_library_outlined),
-                label: Text(_picking ? '正在处理图片' : '选择头像图片'),
+                label: Text(
+                  _picking ? context.tr("正在处理图片") : context.tr("选择头像图片"),
+                ),
               ),
             ),
             Center(
@@ -1055,7 +1066,7 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
                     controller: _name,
                     enabled: !_saving,
                     onChanged: (_) => _changed(),
-                    decoration: const InputDecoration(labelText: '名字'),
+                    decoration: InputDecoration(labelText: context.tr("名字")),
                   ),
                   const SizedBox(height: 18),
                   TextField(
@@ -1065,9 +1076,9 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
                     maxLines: 12,
                     enabled: !_saving,
                     onChanged: (_) => _changed(),
-                    decoration: const InputDecoration(
-                      labelText: '人格提示词',
-                      hintText: '写下它的人格、身份和回应习惯……',
+                    decoration: InputDecoration(
+                      labelText: context.tr("人格提示词"),
+                      hintText: context.tr("写下它的人格、身份和回应习惯……"),
                     ),
                   ),
                 ],
@@ -1080,12 +1091,14 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
                 shape: const Border(),
                 collapsedShape: const Border(),
                 maintainState: true,
-                title: const Text('语料库（选填）'),
-                subtitle: Text('预设消息 · ${_examples.length} 组'),
+                title: Text(context.tr("语料库（选填）")),
+                subtitle: Text(
+                  context.tr("预设消息 · {count} 组", {"count": _examples.length}),
+                ),
                 childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 children: [
                   Text(
-                    '预设消息会作为生成时的对话示例。',
+                    context.tr("预设消息会作为生成时的对话示例。"),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   for (final example in _examples)
@@ -1098,14 +1111,16 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  '示例 ${_examples.indexOf(example) + 1}',
+                                  context.tr("示例 {number}", {
+                                    "number": _examples.indexOf(example) + 1,
+                                  }),
                                 ),
                               ),
                               IconButton(
                                 key: Key(
                                   'remove-persona-example-${example.id}',
                                 ),
-                                tooltip: '删除这组预设消息',
+                                tooltip: context.tr("删除这组预设消息"),
                                 onPressed: _saving
                                     ? null
                                     : () {
@@ -1130,8 +1145,8 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
                             maxLines: 5,
                             enabled: !_saving,
                             onChanged: (_) => _changed(),
-                            decoration: const InputDecoration(
-                              labelText: '用户消息',
+                            decoration: InputDecoration(
+                              labelText: context.tr("用户消息"),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -1142,8 +1157,8 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
                             maxLines: 7,
                             enabled: !_saving,
                             onChanged: (_) => _changed(),
-                            decoration: const InputDecoration(
-                              labelText: 'AI 回答',
+                            decoration: InputDecoration(
+                              labelText: context.tr("AI 回答"),
                             ),
                           ),
                         ],
@@ -1159,7 +1174,7 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
                             _dirty = true;
                           }),
                     icon: const Icon(Icons.add_rounded),
-                    label: const Text('添加预设消息'),
+                    label: Text(context.tr("添加预设消息")),
                   ),
                 ],
               ),
@@ -1176,7 +1191,7 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
             FilledButton(
               key: const Key('save-chat-persona-bottom'),
               onPressed: _saving || _picking ? null : _save,
-              child: Text(_saving ? '保存中' : '保存人格'),
+              child: Text(_saving ? context.tr("保存中") : context.tr("保存人格")),
             ),
           ],
         ),
@@ -1283,15 +1298,15 @@ class _ChatPersonaEditorPageState extends ConsumerState<ChatPersonaEditorPage> {
         final discard = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: const Text('放弃未保存的修改？'),
+            title: Text(dialogContext.tr("放弃未保存的修改？")),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('继续编辑'),
+                child: Text(dialogContext.tr("继续编辑")),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('放弃'),
+                child: Text(dialogContext.tr("放弃")),
               ),
             ],
           ),
@@ -1444,10 +1459,12 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
         loading: () =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
         error: (_, _) =>
-            const Scaffold(body: _ChatErrorView(message: '没有找到这个聊天。')),
+            Scaffold(body: _ChatErrorView(message: context.tr("没有找到这个聊天。"))),
         data: (session) {
           if (session.deletedAt != null) {
-            return const Scaffold(body: _ChatErrorView(message: '这个会话已删除。'));
+            return Scaffold(
+              body: _ChatErrorView(message: context.tr("这个会话已删除。")),
+            );
           }
           final persona = session.personaId == null
               ? null
@@ -1490,7 +1507,7 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
                 actions: [
                   PopupMenuButton<Object>(
                     key: const Key('chat-session-detail-menu'),
-                    tooltip: '更多',
+                    tooltip: context.tr("更多"),
                     onSelected: (action) {
                       if (action is _ConversationAction) {
                         _handleConversationAction(session, action);
@@ -1500,36 +1517,36 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
                     },
                     itemBuilder: (_) => [
                       if (persona != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: _ConversationAction.profile,
-                          child: Text('角色资料'),
+                          child: Text(context.tr("角色资料")),
                         ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: _ConversationAction.model,
-                        child: Text('AI 模型'),
+                        child: Text(context.tr("AI 模型")),
                       ),
                       if (persona != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: _ConversationAction.memory,
-                          child: Text('本聊天记忆'),
+                          child: Text(context.tr("本聊天记忆")),
                         ),
                       if (persona != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: _ConversationAction.newChat,
-                          child: Text('新聊天'),
+                          child: Text(context.tr("新聊天")),
                         ),
                       if (persona != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: _ConversationAction.sessionList,
-                          child: Text('会话列表'),
+                          child: Text(context.tr("会话列表")),
                         ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: _ConversationAction.rename,
-                        child: Text('重命名'),
+                        child: Text(context.tr("重命名")),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: _ConversationAction.delete,
-                        child: Text('删除'),
+                        child: Text(context.tr("删除")),
                       ),
                       for (final panel in pluginPanels)
                         PopupMenuItem<Object>(
@@ -1560,7 +1577,7 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
                       error: (_, _) =>
-                          const _ChatErrorView(message: '消息暂时无法读取。'),
+                          _ChatErrorView(message: context.tr("消息暂时无法读取。")),
                       data: (items) {
                         _observeMessageList(items);
                         final showDraft =
@@ -1571,10 +1588,12 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
                           return _ChatEmptyView(
                             key: const Key('empty-chat-messages-state'),
                             icon: Icons.chat_bubble_outline_rounded,
-                            title: '和 $displayName 聊点什么',
+                            title: context.tr("和 {name} 聊点什么", {
+                              "name": displayName,
+                            }),
                             message: persona == null
-                                ? '这是未绑定聊天角色的旧会话。'
-                                : '消息会保存在这台手机中。',
+                                ? context.tr("这是未绑定聊天角色的旧会话。")
+                                : context.tr("消息会保存在这台手机中。"),
                           );
                         }
                         return Stack(
@@ -1633,11 +1652,13 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
                                             message: message,
                                             persona: persona,
                                             fallbackName: displayName,
-                                            onRetryImage:
+                                            onRetryUser:
                                                 latest &&
                                                     message.role ==
                                                         ChatMessageRole.user &&
-                                                    message.image != null &&
+                                                    (_aiError == null ||
+                                                        _lastUserMessageId !=
+                                                            message.id) &&
                                                     !_sending &&
                                                     !_generating &&
                                                     session.personaId != null
@@ -1736,7 +1757,7 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
                     child: TextButton.icon(
                       key: const Key('chat-ai-provider'),
                       onPressed: _generating
-                          ? () => _showMessage('请先停止当前生成。')
+                          ? () => _showMessage(context.tr("请先停止当前生成。"))
                           : () => showAiModelBindingSheet(
                               context: context,
                               ref: ref,
@@ -1749,8 +1770,8 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
                       icon: const Icon(Icons.auto_awesome_rounded, size: 15),
                       label: Text(
                         persona == null
-                            ? '旧会话 · 未关联聊天角色'
-                            : aiLabel ?? '尚未配置 AI',
+                            ? context.tr("旧会话 · 未关联聊天角色")
+                            : aiLabel ?? context.tr("尚未配置 AI"),
                       ),
                     ),
                   ),
@@ -1814,7 +1835,7 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
       _lastUserMessageId = userMessage.id;
       setState(() => _sending = false);
       if (session.personaId != null) {
-        await _generateReply(session, userMessage.id);
+        await _generateReply(session, userMessage.id, freshUserMessage: true);
       }
     } catch (error) {
       if (mounted) {
@@ -1832,6 +1853,7 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
     String userMessageId, {
     String? continueMessageId,
     String? regenerateMessageId,
+    bool freshUserMessage = false,
   }) async {
     if (_generating || session.personaId == null) return;
     final requestId = ref.read(entityIdGeneratorProvider).nextId('ai_request');
@@ -1861,6 +1883,7 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
         nowUtc: ref.read(utcClockProvider).now(),
         continueMessageId: continueMessageId,
         regenerateMessageId: regenerateMessageId,
+        freshUserMessage: freshUserMessage,
       )) {
         if (!mounted || update.requestId != _activeRequestId) continue;
         if (!_pluginNoticeShown && update.pluginNotice != null) {
@@ -1918,14 +1941,14 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
         }
       }
     } catch (error) {
-      if (mounted) {
+      if (mounted && _activeRequestId == requestId) {
         _syncRecoveryHint(false);
         setState(() {
           _generating = false;
           _recovering = false;
           _showRecoveryHint = false;
           _assistantDraft = '';
-          _aiError = friendlyAiError(error);
+          _aiError = context.tr(friendlyAiError(error));
         });
       }
     } finally {
@@ -1970,30 +1993,32 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('删除上一条消息？'),
+        title: Text(dialogContext.tr("删除上一条消息？")),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              message.role == ChatMessageRole.user ? '你的消息' : 'AI 回答',
+              message.role == ChatMessageRole.user
+                  ? dialogContext.tr("你的消息")
+                  : dialogContext.tr("AI 回答"),
               style: Theme.of(context).textTheme.labelLarge,
             ),
             const SizedBox(height: 8),
             Text(preview, maxLines: 4, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 16),
-            const Text('每次只删除一条；再次删除会继续向前。'),
+            Text(dialogContext.tr("每次只删除一条；再次删除会继续向前。")),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
+            child: Text(dialogContext.tr("取消")),
           ),
           FilledButton(
             key: const Key('confirm-delete-chat-message'),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('删除'),
+            child: Text(dialogContext.tr("删除")),
           ),
         ],
       ),
@@ -2001,12 +2026,18 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
     if (confirmed != true || !mounted || _generating || _sending) return;
     setState(() => _sending = true);
     try {
-      await ref
-          .read(chatRepositoryProvider)
-          .mutateLatestMessage(
-            expected: message,
-            nowUtc: ref.read(utcClockProvider).now(),
-          );
+      final repository = ref.read(chatRepositoryProvider);
+      final expected = message.hasImage
+          ? await repository.getMessage(message.id)
+          : message;
+      if (!mounted || widget.sessionId != message.sessionId) return;
+      if (expected.revision != message.revision) {
+        throw const DataConflictException('最后一条消息已经变化，请重新操作。');
+      }
+      await repository.mutateLatestMessage(
+        expected: expected,
+        nowUtc: ref.read(utcClockProvider).now(),
+      );
       _lastUserMessageId = null;
       _lastRegenerateMessageId = null;
       _lastContinueMessageId = null;
@@ -2035,7 +2066,7 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
       if (!mounted || widget.sessionId != sessionId) return;
       if (image != null) setState(() => _pendingImage = image);
     } catch (_) {
-      if (mounted) _showMessage('无法处理这张图片，请尝试其他图片。');
+      if (mounted) _showMessage(context.tr("无法处理这张图片，请尝试其他图片。"));
     } finally {
       if (mounted && widget.sessionId == sessionId) {
         setState(() => _pickingImage = false);
@@ -2104,7 +2135,7 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
         }
       case _ConversationAction.model:
         if (_generating) {
-          _showMessage('请先停止当前生成。');
+          _showMessage(context.tr("请先停止当前生成。"));
         } else {
           await showAiModelBindingSheet(
             context: context,
@@ -2119,7 +2150,8 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
         }
       case _ConversationAction.newChat:
         final personaId = session.personaId;
-        if (personaId != null) {
+        if (personaId != null && await _confirmDiscardDraft()) {
+          if (!mounted || widget.sessionId != session.id) return;
           final created = await ref
               .read(openPersonaChatProvider)
               .createNew(
@@ -2129,7 +2161,9 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
                     .nextId('chat'),
                 nowUtc: ref.read(utcClockProvider).now(),
               );
-          if (mounted) context.go(AppRoutes.chatSession(created.id));
+          if (mounted && widget.sessionId == session.id) {
+            context.go(AppRoutes.chatSession(created.id));
+          }
         }
       case _ConversationAction.sessionList:
         if (session.personaId != null) {
@@ -2159,23 +2193,23 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: const Key('rename-chat-session-dialog'),
-        title: const Text('重命名会话'),
+        title: Text(dialogContext.tr("重命名会话")),
         content: TextFormField(
           key: const Key('rename-chat-session-field'),
           initialValue: session.title,
           onChanged: (value) => draft = value,
           autofocus: true,
-          decoration: const InputDecoration(labelText: '名称'),
+          decoration: InputDecoration(labelText: dialogContext.tr("名称")),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(dialogContext.tr("取消")),
           ),
           FilledButton(
             key: const Key('confirm-rename-chat-session-button'),
             onPressed: () => Navigator.pop(dialogContext, draft),
-            child: const Text('保存'),
+            child: Text(dialogContext.tr("保存")),
           ),
         ],
       ),
@@ -2207,17 +2241,17 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: const Key('delete-chat-session-dialog'),
-        title: const Text('删除会话？'),
-        content: const Text('聊天记录会保留在已删除会话中，可以恢复。'),
+        title: Text(dialogContext.tr("删除会话？")),
+        content: Text(dialogContext.tr("聊天记录会保留在已删除会话中，可以恢复。")),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
+            child: Text(dialogContext.tr("取消")),
           ),
           FilledButton(
             key: const Key('confirm-delete-chat-session-button'),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('删除'),
+            child: Text(dialogContext.tr("删除")),
           ),
         ],
       ),
@@ -2236,29 +2270,34 @@ class _SimpleChatSessionPageState extends ConsumerState<SimpleChatSessionPage> {
     }
   }
 
-  Future<void> _requestLeave() async {
-    if ((_controller.text.trim().isNotEmpty || _pendingImage != null) &&
-        !_sending) {
-      final discard = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          key: const Key('discard-chat-draft-dialog'),
-          title: const Text('放弃未发送内容？'),
-          content: const Text('返回后，这段尚未发送的文字不会保留。'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('继续编辑'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('放弃'),
-            ),
-          ],
-        ),
-      );
-      if (discard != true || !mounted) return;
+  Future<bool> _confirmDiscardDraft() async {
+    if ((_controller.text.trim().isEmpty && _pendingImage == null) ||
+        _sending) {
+      return true;
     }
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const Key('discard-chat-draft-dialog'),
+        title: Text(dialogContext.tr("放弃未发送内容？")),
+        content: Text(dialogContext.tr("离开后，尚未发送的文字和图片将丢失。")),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(dialogContext.tr("继续编辑")),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(dialogContext.tr("放弃")),
+          ),
+        ],
+      ),
+    );
+    return discard == true;
+  }
+
+  Future<void> _requestLeave() async {
+    if (!await _confirmDiscardDraft() || !mounted) return;
     _stopGeneration();
     if (!mounted) return;
     if (context.canPop()) {
@@ -2325,7 +2364,7 @@ class _MessageComposer extends StatelessWidget {
               children: [
                 IconButton(
                   key: const Key('chat-tools-button'),
-                  tooltip: '会话工具',
+                  tooltip: context.tr("会话工具"),
                   onPressed: onTools,
                   icon: const Icon(Icons.add_rounded),
                 ),
@@ -2342,8 +2381,8 @@ class _MessageComposer extends StatelessWidget {
                       height: 1.3,
                       forceStrutHeight: true,
                     ),
-                    decoration: const InputDecoration(
-                      hintText: '说点什么……',
+                    decoration: InputDecoration(
+                      hintText: context.tr("说点什么……"),
                       isDense: true,
                       contentPadding: EdgeInsets.symmetric(vertical: 10),
                       border: InputBorder.none,
@@ -2379,13 +2418,13 @@ class _MessageComposer extends StatelessWidget {
   }
 }
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends ConsumerStatefulWidget {
   const _MessageBubble({
     required this.message,
     required this.persona,
     required this.fallbackName,
     this.onContinue,
-    this.onRetryImage,
+    this.onRetryUser,
     this.onRegenerate,
     this.onDelete,
   });
@@ -2394,12 +2433,59 @@ class _MessageBubble extends StatelessWidget {
   final ChatPersona? persona;
   final String fallbackName;
   final VoidCallback? onContinue;
-  final VoidCallback? onRetryImage;
+  final VoidCallback? onRetryUser;
   final VoidCallback? onRegenerate;
   final VoidCallback? onDelete;
 
   @override
+  ConsumerState<_MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends ConsumerState<_MessageBubble> {
+  Future<ChatImage?>? _payload;
+
+  ChatMessage get message => widget.message;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _MessageBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message.id != message.id ||
+        oldWidget.message.revision != message.revision) {
+      _load();
+    }
+  }
+
+  void _load() {
+    _payload = message.hasImage
+        ? ref.read(chatRepositoryProvider).getMessageImage(message.id)
+        : null;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final payload = _payload;
+    if (payload == null) return _buildBubble(context);
+    return FutureBuilder<ChatImage?>(
+      future: payload,
+      builder: (context, snapshot) => _buildBubble(
+        context,
+        image: snapshot.data,
+        awaitingImage: snapshot.connectionState != ConnectionState.done,
+      ),
+    );
+  }
+
+  Widget _buildBubble(
+    BuildContext context, {
+    ChatImage? image,
+    bool awaitingImage = false,
+  }) {
     if (message.role == ChatMessageRole.system) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 28),
@@ -2426,8 +2512,8 @@ class _MessageBubble extends StatelessWidget {
         children: [
           if (!user) ...[
             _PersonaAvatar(
-              persona: persona,
-              fallbackName: fallbackName,
+              persona: widget.persona,
+              fallbackName: widget.fallbackName,
               radius: 17,
             ),
             const SizedBox(width: 8),
@@ -2468,12 +2554,16 @@ class _MessageBubble extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (message.image != null)
-                      ChatImageRecord(image: message.image!),
-                    if (message.image == null ||
-                        message.image!.userText.isNotEmpty)
+                    if (image != null)
+                      ChatImageRecord(
+                        key: ValueKey('chat-image-record-${message.id}'),
+                        image: image,
+                      ),
+                    if (message.hasImage && image == null)
+                      ChatImagePlaceholder(loading: awaitingImage),
+                    if (!message.hasImage || image?.userText.isNotEmpty == true)
                       Text(
-                        message.image?.userText ?? message.content,
+                        image?.userText ?? message.content,
                         strutStyle: const StrutStyle(
                           fontSize: 16,
                           height: 1.38,
@@ -2490,21 +2580,27 @@ class _MessageBubble extends StatelessWidget {
                           height: 1.38,
                         ),
                       ),
-                    if (onRetryImage != null)
+                    if (widget.onRetryUser != null)
                       TextButton(
-                        key: const Key('chat-image-retry'),
+                        key: Key(
+                          message.hasImage
+                              ? 'chat-image-retry'
+                              : 'chat-text-retry',
+                        ),
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white,
                         ),
-                        onPressed: onRetryImage,
+                        onPressed: widget.onRetryUser,
                         child: Text(
-                          message.image!.needsRecognition ? '识别并回复' : '重试回复',
+                          image?.needsRecognition == true
+                              ? context.tr("识别并回复")
+                              : context.tr("重试回复"),
                         ),
                       ),
                     if (!user && message.finishReason == AiFinishReason.length)
                       _ReplyFinishActions(
                         message: '达到长度限制',
-                        onContinue: onContinue,
+                        onContinue: widget.onContinue,
                       ),
                     if (!user)
                       ChatReplyMemoryBadge(
@@ -2515,13 +2611,13 @@ class _MessageBubble extends StatelessWidget {
                         message.finishReason == AiFinishReason.interrupted)
                       _ReplyFinishActions(
                         message: '回复中断',
-                        onContinue: onContinue,
+                        onContinue: widget.onContinue,
                       ),
                     if (!user &&
                         message.finishReason == AiFinishReason.contentFiltered)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(top: 8),
-                        child: Text('内容因安全限制未能继续生成。'),
+                        child: Text(context.tr("内容因安全限制未能继续生成。")),
                       ),
                   ],
                 ),
@@ -2546,23 +2642,26 @@ class _MessageBubble extends StatelessWidget {
         Offset.zero & overlay.size,
       ),
       items: [
-        const PopupMenuItem(value: _ChatMessageAction.copy, child: Text('复制')),
+        PopupMenuItem(
+          value: _ChatMessageAction.copy,
+          child: Text(context.tr("复制")),
+        ),
         if (!user)
           PopupMenuItem(
             value: _ChatMessageAction.continueReply,
-            enabled: onContinue != null,
-            child: const Text('继续生成'),
+            enabled: widget.onContinue != null,
+            child: Text(context.tr("继续生成")),
           ),
         if (!user)
           PopupMenuItem(
             value: _ChatMessageAction.regenerate,
-            enabled: onRegenerate != null,
-            child: const Text('重新生成'),
+            enabled: widget.onRegenerate != null,
+            child: Text(context.tr("重新生成")),
           ),
         PopupMenuItem(
           value: _ChatMessageAction.delete,
-          enabled: onDelete != null,
-          child: const Text('删除'),
+          enabled: widget.onDelete != null,
+          child: Text(context.tr("删除")),
         ),
       ],
     );
@@ -2573,14 +2672,14 @@ class _MessageBubble extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('已复制')));
+          ).showSnackBar(SnackBar(content: Text(context.tr("已复制"))));
         }
       case _ChatMessageAction.continueReply:
-        onContinue?.call();
+        widget.onContinue?.call();
       case _ChatMessageAction.regenerate:
-        onRegenerate?.call();
+        widget.onRegenerate?.call();
       case _ChatMessageAction.delete:
-        onDelete?.call();
+        widget.onDelete?.call();
     }
   }
 }
@@ -2607,7 +2706,7 @@ class _ReplyFinishActions extends StatelessWidget {
             child: Text.rich(
               TextSpan(
                 text: message,
-                children: const [TextSpan(text: ' · 继续')],
+                children: [TextSpan(text: context.tr(" · 继续"))],
               ),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: context.ibukiColors.textMuted,
@@ -2674,10 +2773,10 @@ class _StreamingAssistantBubble extends StatelessWidget {
                     draft.isNotEmpty
                         ? draft
                         : recovering
-                        ? '连接中断，正在续接……'
+                        ? context.tr("连接中断，正在续接……")
                         : generating
-                        ? '正在回复……'
-                        : error ?? '回复失败',
+                        ? context.tr("正在回复……")
+                        : error ?? context.tr("回复失败"),
                     strutStyle: const StrutStyle(
                       fontSize: 16,
                       height: 1.38,
@@ -2694,7 +2793,7 @@ class _StreamingAssistantBubble extends StatelessWidget {
                     if (recovering) ...[
                       const SizedBox(height: 6),
                       Text(
-                        '连接中断，正在续接…',
+                        context.tr("连接中断，正在续接…"),
                         key: const Key('chat-auto-recovering-status'),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: context.ibukiColors.textMuted,
@@ -2707,7 +2806,7 @@ class _StreamingAssistantBubble extends StatelessWidget {
                     TextButton(
                       key: const Key('chat-ai-retry-button'),
                       onPressed: onRetry,
-                      child: const Text('重试'),
+                      child: Text(context.tr("重试")),
                     ),
                   ],
                 ],
@@ -2732,15 +2831,19 @@ class _PersonaRecentSessions extends ConsumerWidget {
       key: const Key('persona-recent-sessions'),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: sessions.when(
-        loading: () =>
-            const ListTile(title: Text('最近聊天'), subtitle: Text('正在读取……')),
-        error: (_, _) =>
-            const ListTile(title: Text('最近聊天'), subtitle: Text('暂时无法读取')),
+        loading: () => ListTile(
+          title: Text(context.tr("最近聊天")),
+          subtitle: Text(context.tr("正在读取……")),
+        ),
+        error: (_, _) => ListTile(
+          title: Text(context.tr("最近聊天")),
+          subtitle: Text(context.tr("暂时无法读取")),
+        ),
         data: (items) => Column(
           children: [
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-              title: const Text('最近聊天'),
+              title: Text(context.tr("最近聊天")),
               trailing: items.isEmpty
                   ? null
                   : TextButton(
@@ -2748,7 +2851,7 @@ class _PersonaRecentSessions extends ConsumerWidget {
                       onPressed: () => context.push(
                         AppRoutes.chatPersonaSessions(persona.id),
                       ),
-                      child: const Text('查看全部'),
+                      child: Text(context.tr("查看全部")),
                     ),
             ),
             for (final session in items.take(3))
@@ -2765,11 +2868,11 @@ class _PersonaRecentSessions extends ConsumerWidget {
                 onTap: () => context.push(AppRoutes.chatSession(session.id)),
               ),
             if (items.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.fromLTRB(8, 0, 8, 12),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('还没有聊天。'),
+                  child: Text(context.tr("还没有聊天。")),
                 ),
               ),
           ],
@@ -2786,11 +2889,11 @@ class _PersonaProfileSections extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('人格提示词', style: Theme.of(context).textTheme.titleSmall),
+      Text(context.tr("人格提示词"), style: Theme.of(context).textTheme.titleSmall),
       const SizedBox(height: 8),
       Text(
         persona.unifiedPrompt.trim().isEmpty
-            ? '尚未填写人格提示词。'
+            ? context.tr("尚未填写人格提示词。")
             : persona.unifiedPrompt,
         style: const TextStyle(height: 1.55),
       ),
@@ -2798,12 +2901,20 @@ class _PersonaProfileSections extends StatelessWidget {
         ExpansionTile(
           shape: const Border(),
           collapsedShape: const Border(),
-          title: Text('预设消息 · ${persona.presetMessages.length} 组'),
+          title: Text(
+            context.tr("预设消息 · {count} 组", {
+              "count": persona.presetMessages.length,
+            }),
+          ),
           children: [
             for (final pair in persona.presetMessages)
               ListTile(
-                title: Text('用户消息：${pair.user}'),
-                subtitle: Text('AI 回答：${pair.assistant}'),
+                title: Text(
+                  context.tr("用户消息：{message}", {"message": pair.user}),
+                ),
+                subtitle: Text(
+                  context.tr("AI 回答：{message}", {"message": pair.assistant}),
+                ),
               ),
           ],
         ),
@@ -2963,7 +3074,7 @@ class _ChatErrorView extends StatelessWidget {
             Text(message, textAlign: TextAlign.center),
             if (onRetry != null) ...[
               const SizedBox(height: 10),
-              TextButton(onPressed: onRetry, child: const Text('重试')),
+              TextButton(onPressed: onRetry, child: Text(context.tr("重试"))),
             ],
           ],
         ),

@@ -1,3 +1,5 @@
+import '../tavern/provider/tavern_model_profile_store.dart';
+import '../ai/ai_settings_controller.dart' show aiSecureValueStoreProvider;
 import '../plugins/novel_plugin_providers.dart';
 import '../projects/novel_output_limits_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -275,8 +277,7 @@ final novelMemoryServiceProvider = Provider<NovelMemoryService>((ref) {
 
 final chatMemoryServiceProvider = Provider<ChatMemoryService>((ref) {
   var alive = true;
-  ref.onDispose(() => alive = false);
-  return ChatMemoryService(
+  final service = ChatMemoryService(
     memories: ref.watch(chatMemoryRepositoryProvider),
     chats: ref.watch(chatRepositoryProvider),
     personas: ref.watch(chatPersonaRepositoryProvider),
@@ -292,6 +293,11 @@ final chatMemoryServiceProvider = Provider<ChatMemoryService>((ref) {
       }
     },
   );
+  ref.onDispose(() {
+    alive = false;
+    service.dispose();
+  });
+  return service;
 });
 
 final saveSegmentProvider = Provider<SaveSegment>((ref) {
@@ -407,7 +413,12 @@ final selectionModifySegmentProvider = Provider<SelectionModifySegment>((ref) {
 });
 
 final generateChatReplyProvider = Provider<GenerateChatReply>((ref) {
+  final profiles = TavernModelProfileStore(
+    ref.watch(aiSecureValueStoreProvider),
+  );
   return GenerateChatReply(
+    modelLimits: (model) =>
+        profiles.savedLimits(model.providerConfigId, model.model),
     imageRecognizer: RecognizeChatImage(
       chats: ref.watch(chatRepositoryProvider),
       runtime: ref.watch(aiGenerationServiceProvider),
@@ -865,7 +876,10 @@ final chatPersonaByIdProvider = FutureProvider.family<ChatPersona, String>((
 final chatMessageListProvider =
     FutureProvider.family<List<ChatMessage>, String>((ref, sessionId) {
       _watchChatMessages(ref);
-      return ref.watch(listChatMessagesProvider)(sessionId);
+      return ref.watch(listChatMessagesProvider)(
+        sessionId,
+        includeImageData: false,
+      );
     });
 
 final segmentListProvider = FutureProvider.family<List<Segment>, String>((

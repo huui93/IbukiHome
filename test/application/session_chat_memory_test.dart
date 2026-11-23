@@ -165,7 +165,7 @@ void main() {
       isTrue,
     );
     expect(
-      await f.service.organize('a'),
+      await f.service.organize('a', force: true),
       ChatMemoryOrganizationResult.disabled,
     );
     expect(f.runtime.requests, isEmpty);
@@ -182,7 +182,7 @@ void main() {
         ],
       );
       expect(
-        await f.service.organize('a'),
+        await f.service.organize('a', force: true),
         ChatMemoryOrganizationResult.completed,
       );
       expect(
@@ -218,7 +218,7 @@ void main() {
         outputs: ['摘要', '[{"content":"用户喜欢茶"}]'],
         gate: gate,
       );
-      final job = f.service.organize('a');
+      final job = f.service.organize('a', force: true);
       await f.runtime.started.future;
       await f.service.updateSettings('a', savedEnabled: false);
       gate.complete();
@@ -237,7 +237,7 @@ void main() {
         gate: gate,
       );
       final entry = await f.save('a', '用户喜欢乌龙茶');
-      final job = f.service.organize('a');
+      final job = f.service.organize('a', force: true);
       await f.runtime.started.future;
       await f.service.forget('a', source(entry), deleteSaved: true);
       gate.complete();
@@ -265,14 +265,15 @@ void main() {
   test(
     'failed extraction retains cursor and can be retried without losing batch',
     () async {
-      final f = Fixture(count: 8, outputs: ['摘要', 'bad-json', '摘要重试', '[]']);
+      final f = Fixture(count: 8, outputs: ['摘要', 'bad-json', '[]']);
       expect(
-        await f.service.organize('a'),
-        ChatMemoryOrganizationResult.failed,
+        await f.service.organize('a', force: true),
+        ChatMemoryOrganizationResult.summarySaved,
       );
       expect((await f.service.settings('a')).cursor, isNull);
+      expect(await f.repo.listSummaries('a'), hasLength(1));
       expect(
-        await f.service.organize('a'),
+        await f.service.organize('a', force: true),
         ChatMemoryOrganizationResult.completed,
       );
       expect((await f.service.settings('a')).cursor, 'm7');
@@ -303,7 +304,7 @@ void main() {
         ),
       );
       expect(
-        await f.service.organize('a'),
+        await f.service.organize('a', force: true),
         ChatMemoryOrganizationResult.completed,
       );
       expect((await f.repo.listEntriesForSession('a')).single.id, 'auto');
@@ -320,7 +321,7 @@ void main() {
       for (var i = 8; i < 16; i++) {
         f.store.putChatMessage(message(i));
       }
-      await f.service.organize('a');
+      await f.service.organize('a', force: true);
       expect((await f.repo.getEntry('auto')).content, '用户只喝热茶');
     },
   );
@@ -334,7 +335,7 @@ void main() {
     expect(f.store.chatMessages, hasLength(8));
     expect((await f.service.settings('a')).savedEnabled, isFalse);
     expect(
-      await f.service.organize('a'),
+      await f.service.organize('a', force: true),
       ChatMemoryOrganizationResult.disabled,
     );
   });
@@ -385,6 +386,63 @@ void main() {
     await f.service.applyUserInstruction('a', '忘记乌龙茶');
     expect((await f.repo.listEntriesForSession('a')).single.content, '用户喜欢爵士乐');
   });
+  test(
+    'default compresses at 50 completed turns without crossing sessions',
+    () async {
+      final f = Fixture(count: 99, outputs: ['之前约好周末去看展', '[]']);
+      expect((await f.service.settings('a')).compressionRounds, 50);
+      expect(
+        await f.service.organize('a'),
+        ChatMemoryOrganizationResult.insufficient,
+      );
+      expect(f.runtime.requests, isEmpty);
+      f.store.putChatMessage(
+        message(99).copyWith(finishReason: AiFinishReason.interrupted),
+      );
+      expect(
+        await f.service.organize('a'),
+        ChatMemoryOrganizationResult.insufficient,
+      );
+      f.store.putChatMessage(
+        message(99).copyWith(finishReason: AiFinishReason.stop),
+      );
+      expect(
+        await f.service.organize('a'),
+        ChatMemoryOrganizationResult.completed,
+      );
+      expect((await f.service.settings('a')).cursor, 'm99');
+      expect(
+        (await f.service.loadContext(
+          personaId: 'p',
+          sessionId: 'a',
+          query: '然后呢？',
+        )).summaries.single.summary,
+        '之前约好周末去看展',
+      );
+      expect(await f.repo.listSummaries('b'), isEmpty);
+      expect(f.store.chatMessages, hasLength(100));
+      await f.service.updateSettings('a', compressionRounds: 2);
+      expect((await f.service.settings('a')).compressionRounds, 2);
+      expect((await f.service.settings('b')).compressionRounds, 50);
+    },
+  );
+
+  test('manual compression is visible in the prompt immediately', () async {
+    final f = Fixture(count: 2, outputs: ['说好周末见', '[]']);
+    expect(
+      await f.service.organize('a', force: true),
+      ChatMemoryOrganizationResult.completed,
+    );
+    expect(
+      (await f.service.loadContext(
+        personaId: 'p',
+        sessionId: 'a',
+        query: '接下来？',
+      )).summaries.single.summary,
+      '说好周末见',
+    );
+  });
+
   test('source range fingerprints change when an interior row is deleted', () {
     final messages = List.generate(8, message);
     expect(

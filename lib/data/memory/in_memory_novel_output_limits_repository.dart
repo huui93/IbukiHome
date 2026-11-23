@@ -30,7 +30,9 @@ class InMemoryNovelOutputLimitsRepository
     if (old.revision != expectedRevision) {
       throw const DataConflictException('设置已改变，请重新打开后修改。');
     }
-    if (old.minimum == value.minimum && old.maximum == value.maximum) {
+    if (old.minimum == value.minimum &&
+        old.maximum == value.maximum &&
+        old.temperature == value.temperature) {
       return old;
     }
     if (value.isDefault) {
@@ -41,6 +43,7 @@ class InMemoryNovelOutputLimitsRepository
       projectId: value.projectId,
       minimum: value.minimum,
       maximum: value.maximum,
+      temperature: value.temperature,
       revision: old.revision + 1,
     );
     _values[value.projectId] = updated;

@@ -16,7 +16,8 @@ class ChatMessage {
     required this.content,
     this.finishReason,
     this.image,
-  });
+    bool hasImage = false,
+  }) : hasImage = hasImage || image != null;
 
   /// Shared entity metadata used by all storage backends.
   final EntityMetadata metadata;
@@ -34,6 +35,20 @@ class ChatMessage {
   final String content;
   final AiFinishReason? finishReason;
   final ChatImage? image;
+  final bool hasImage;
+
+  /// The text projection preserves identity and revisions without loading media.
+  ChatMessage withoutImage() => image == null
+      ? this
+      : ChatMessage(
+          metadata: metadata,
+          sessionId: sessionId,
+          projectId: projectId,
+          role: role,
+          content: content,
+          finishReason: finishReason,
+          hasImage: true,
+        );
 
   String get id => metadata.id;
   DateTime get createdAt => metadata.createdAt;
@@ -59,6 +74,7 @@ class ChatMessage {
       role: role ?? this.role,
       content: content ?? this.content,
       image: image ?? this.image,
+      hasImage: hasImage,
       finishReason: finishReason == _unsetFinishReason
           ? this.finishReason
           : finishReason as AiFinishReason?,
@@ -101,6 +117,7 @@ class ChatMessage {
         role == other.role &&
         content == other.content &&
         finishReason == other.finishReason &&
+        hasImage == other.hasImage &&
         image == other.image;
   }
 
@@ -112,6 +129,7 @@ class ChatMessage {
     role,
     content,
     finishReason,
+    hasImage,
     image,
   );
 }

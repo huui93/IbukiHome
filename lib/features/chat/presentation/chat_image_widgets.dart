@@ -1,56 +1,143 @@
 import 'package:flutter/material.dart';
+import '../../../app/localization/app_localizations.dart';
 import '../../../domain/chat/chat_image.dart';
 
-class ChatImagePreview extends StatelessWidget {
+class ChatImagePreview extends StatefulWidget {
   const ChatImagePreview({required this.image, this.size = 180, super.key});
+
   final ChatImage image;
   final double size;
+
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: '聊天图片，点击查看',
-    button: true,
-    child: InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => Scaffold(
-            backgroundColor: Colors.black,
-            appBar: AppBar(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              title: const Text('图片'),
+  State<ChatImagePreview> createState() => _ChatImagePreviewState();
+}
+
+class _ChatImagePreviewState extends State<ChatImagePreview> {
+  MemoryImage? _image;
+
+  MemoryImage? _loadImage() {
+    try {
+      return MemoryImage(widget.image.bytes);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _image = _loadImage();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatImagePreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reloading a persisted message creates new bytes even when recognition
+    // only changed the description. Keep the same decoded image cache key.
+    if (oldWidget.image.base64Data != widget.image.base64Data) {
+      _image = _loadImage();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pixels = (widget.size * MediaQuery.devicePixelRatioOf(context))
+        .ceil()
+        .clamp(1, 768);
+    final colors = Theme.of(context).colorScheme;
+    final source = _image;
+    return Semantics(
+      label: context.tr('聊天图片，点击查看'),
+      button: true,
+      child: InkWell(
+        onTap: source == null ? null : _open,
+        borderRadius: BorderRadius.circular(14),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: SizedBox.square(
+            key: const Key('chat-image-thumbnail-box'),
+            dimension: widget.size,
+            child: ColoredBox(
+              color: colors.surfaceContainer,
+              child: source == null
+                  ? _unavailable(context)
+                  : Image(
+                      image: ResizeImage(
+                        source,
+                        width: pixels,
+                        height: pixels,
+                        policy: ResizeImagePolicy.fit,
+                      ),
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                      frameBuilder: (context, child, frame, synchronous) {
+                        if (synchronous || frame != null) return child;
+                        return const Center(child: Icon(Icons.image_outlined));
+                      },
+                      errorBuilder: (context, _, _) => _unavailable(context),
+                    ),
             ),
-            body: Center(
-              child: InteractiveViewer(
-                minScale: 0.5,
-                maxScale: 6,
-                child: Image.memory(
-                  image.bytes,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => const Icon(
-                    Icons.broken_image_outlined,
-                    color: Colors.white,
-                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _unavailable(BuildContext context) => Center(
+    child: Text(
+      context.tr('无法显示图片'),
+      textAlign: TextAlign.center,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
+
+  void _open() {
+    final source = _image;
+    if (source == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            title: Text(context.tr('图片')),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 6,
+              child: Image(
+                image: source,
+                fit: BoxFit.contain,
+                errorBuilder: (context, _, _) => Text(
+                  context.tr('无法显示图片'),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ),
           ),
         ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Image.memory(
-          image.bytes,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).ceil(),
-          errorBuilder: (_, _, _) => SizedBox(
-            width: size,
-            height: size,
-            child: const Center(child: Icon(Icons.broken_image_outlined)),
-          ),
-        ),
-      ),
+    );
+  }
+}
+
+class ChatImagePlaceholder extends StatelessWidget {
+  const ChatImagePlaceholder({required this.loading, super.key});
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 180,
+    child: Center(
+      child: loading
+          ? const Icon(Icons.image_outlined, color: Colors.white)
+          : Text(
+              context.tr('无法显示图片'),
+              style: const TextStyle(color: Colors.white),
+            ),
     ),
   );
 }
@@ -118,7 +205,7 @@ class ChatImageRecord extends StatelessWidget {
             ),
             children: [
               Text(
-                '${image.description}\n\n模型观察，可能有误；作为本会话的记忆资料。',
+                '${image.description}\n\n模型观察，可能有误。描述保存在本会话的图片记录中。',
                 style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
             ],

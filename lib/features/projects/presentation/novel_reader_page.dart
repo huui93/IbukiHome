@@ -11,6 +11,7 @@ import '../../../app/widgets/ibuki_glass_surface.dart';
 import '../../../application/providers/repository_providers.dart';
 import '../../../domain/reader/reader_preferences.dart';
 import '../../../domain/segments/segment.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class NovelReaderPage extends ConsumerStatefulWidget {
   const NovelReaderPage({required this.projectId, super.key});
@@ -50,15 +51,18 @@ class _NovelReaderPageState extends ConsumerState<NovelReaderPage> {
     return project.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) => const Scaffold(body: Center(child: Text('无法打开作品。'))),
+      error: (_, _) =>
+          Scaffold(body: Center(child: Text(context.tr("无法打开作品。")))),
       data: (project) => preferences.when(
         loading: () =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
-        error: (_, _) => const Scaffold(body: Center(child: Text('无法读取阅读设置。'))),
+        error: (_, _) =>
+            Scaffold(body: Center(child: Text(context.tr("无法读取阅读设置。")))),
         data: (prefs) => segments.when(
           loading: () =>
               const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (_, _) => const Scaffold(body: Center(child: Text('无法读取正文。'))),
+          error: (_, _) =>
+              Scaffold(body: Center(child: Text(context.tr("无法读取正文。")))),
           data: (items) {
             progress.whenData((value) => _restorePosition(value, items));
             return _buildReader(context, project.title, items, prefs);
@@ -97,7 +101,7 @@ class _NovelReaderPageState extends ConsumerState<NovelReaderPage> {
               child: segments.isEmpty
                   ? Center(
                       child: Text(
-                        '这部作品还没有正文。',
+                        context.tr("这部作品还没有正文。"),
                         style: TextStyle(color: palette.secondaryText),
                       ),
                     )
@@ -151,7 +155,7 @@ class _NovelReaderPageState extends ConsumerState<NovelReaderPage> {
                       children: [
                         IconButton(
                           key: const Key('reader-back-button'),
-                          tooltip: '返回',
+                          tooltip: context.tr("返回"),
                           onPressed: () => context.pop(),
                           icon: const Icon(Icons.arrow_back_rounded),
                         ),
@@ -166,7 +170,7 @@ class _NovelReaderPageState extends ConsumerState<NovelReaderPage> {
                         Text('${progress.round()}%'),
                         IconButton(
                           key: const Key('reader-settings-button'),
-                          tooltip: '阅读设置',
+                          tooltip: context.tr("阅读设置"),
                           onPressed: () => _showSettings(preferences),
                           icon: const Icon(Icons.text_fields_rounded),
                         ),
@@ -243,7 +247,10 @@ class _NovelReaderPageState extends ConsumerState<NovelReaderPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('阅读设置', style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  context.tr("阅读设置"),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 _ReaderSlider(
                   label: '字号',
                   value: value.fontSize,
@@ -272,18 +279,18 @@ class _NovelReaderPageState extends ConsumerState<NovelReaderPage> {
                   ),
                 ),
                 SegmentedButton<ReaderThemeMode>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: ReaderThemeMode.light,
-                      label: Text('浅色'),
+                      label: Text(context.tr("浅色")),
                     ),
                     ButtonSegment(
                       value: ReaderThemeMode.warm,
-                      label: Text('暖色'),
+                      label: Text(context.tr("暖色")),
                     ),
                     ButtonSegment(
                       value: ReaderThemeMode.dark,
-                      label: Text('深色'),
+                      label: Text(context.tr("深色")),
                     ),
                   ],
                   selected: {value.theme},
@@ -306,7 +313,7 @@ class _NovelReaderPageState extends ConsumerState<NovelReaderPage> {
                     );
                     if (context.mounted) Navigator.pop(context);
                   },
-                  child: const Text('保存'),
+                  child: Text(context.tr("保存")),
                 ),
               ],
             ),

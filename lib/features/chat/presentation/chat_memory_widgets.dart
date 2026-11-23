@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../app/localization/app_localizations.dart';
 import '../../../app/routing/app_routes.dart';
+import '../../../application/memory/chat_memory_service.dart';
 import '../../../application/providers/repository_providers.dart';
 import '../../../domain/chat/chat_memory_state.dart';
 
@@ -84,14 +87,110 @@ class _ChatMemoryControlsState extends ConsumerState<ChatMemoryControls> {
                           .updateSettings(widget.sessionId, paused: v),
                     ),
             ),
+            ListTile(
+              key: Key('memory-compression-rounds-${widget.sessionId}'),
+              contentPadding: EdgeInsets.zero,
+              title: Text(context.tr('自动压缩轮数')),
+              subtitle: Text(
+                context.tr('每 {rounds} 个完整轮次整理一次', {
+                  'rounds': state.compressionRounds,
+                }),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              enabled: !_busy,
+              onTap: _busy ? null : () => _editCompressionRounds(state),
+            ),
+            ListTile(
+              key: Key('compress-memory-now-${widget.sessionId}'),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.compress_rounded),
+              title: Text(context.tr('立即压缩会话')),
+              subtitle: Text(
+                context.tr(
+                  state.historyEnabled && state.canRead
+                      ? '生成当前会话摘要，原始消息保留。'
+                      : '先开启历史引用并取消暂停。',
+                ),
+              ),
+              enabled: !_busy && state.canRead && state.historyEnabled,
+              onTap: _busy || !state.canRead || !state.historyEnabled
+                  ? null
+                  : _compressNow,
+            ),
             if (_error != null)
               Text(
-                _error!,
+                context.tr(_error!),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
           ],
         ),
       );
+  Future<void> _editCompressionRounds(ChatMemoryState state) async {
+    var input = state.compressionRounds.toString();
+    var invalid = false;
+    final chosen = await showDialog<int>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (dialog, setDialogState) => AlertDialog(
+          title: Text(dialog.tr('自动压缩轮数')),
+          content: TextFormField(
+            key: const Key('memory-compression-rounds-input'),
+            initialValue: input,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: dialog.tr('轮数'),
+              helperText: dialog.tr('默认 50 轮'),
+              errorText: invalid ? dialog.tr('压缩轮数须在 1 到 1000 之间。') : null,
+            ),
+            onChanged: (value) {
+              input = value;
+              if (invalid) setDialogState(() => invalid = false);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog),
+              child: Text(dialog.tr('取消')),
+            ),
+            FilledButton(
+              key: const Key('save-memory-compression-rounds'),
+              onPressed: () {
+                final value = int.tryParse(input);
+                if (value == null ||
+                    value < 1 ||
+                    value > ChatMemoryState.maximumCompressionRounds) {
+                  setDialogState(() => invalid = true);
+                  return;
+                }
+                Navigator.pop(dialog, value);
+              },
+              child: Text(dialog.tr('保存')),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || chosen == null || chosen == state.compressionRounds) return;
+    await _run(
+      () => ref
+          .read(chatMemoryServiceProvider)
+          .updateSettings(widget.sessionId, compressionRounds: chosen),
+    );
+  }
+
+  Future<void> _compressNow() => _run(() async {
+    final result = await ref
+        .read(chatMemoryServiceProvider)
+        .organize(widget.sessionId, force: true);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.tr(chatMemoryOrganizationMessage(result))),
+      ),
+    );
+  });
+
   Future<void> _run(Future<void> Function() action) async {
     setState(() {
       _busy = true;
@@ -112,6 +211,16 @@ class _ChatMemoryControlsState extends ConsumerState<ChatMemoryControls> {
     }
   }
 }
+
+String chatMemoryOrganizationMessage(ChatMemoryOrganizationResult result) =>
+    switch (result) {
+      ChatMemoryOrganizationResult.completed => '本会话已压缩。',
+      ChatMemoryOrganizationResult.summarySaved => '摘要已保存，长期记忆提取失败，下次可重试。',
+      ChatMemoryOrganizationResult.insufficient => '没有可压缩的新完整轮次。',
+      ChatMemoryOrganizationResult.disabled => '先开启历史引用并取消暂停。',
+      ChatMemoryOrganizationResult.changed => '压缩期间会话已变化，请重试。',
+      ChatMemoryOrganizationResult.failed => '压缩失败，请检查模型配置后重试。',
+    };
 
 class ChatReplyMemoryBadge extends ConsumerWidget {
   const ChatReplyMemoryBadge({

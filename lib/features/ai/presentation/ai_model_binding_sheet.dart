@@ -10,6 +10,7 @@ import '../../../core/network/ai_provider_exceptions.dart';
 import '../../../domain/ai/ai_provider_config.dart';
 import '../../../domain/ai/ai_provider_type.dart';
 import 'ai_ui_helpers.dart';
+import '../../../app/localization/app_localizations.dart';
 
 enum AiModelBindingScope { project, chatSession, worldSession, chatVision }
 
@@ -174,7 +175,7 @@ class _AiModelBindingSheetState extends ConsumerState<_AiModelBindingSheet> {
                       value: true,
                       title: Text(
                         widget.scope == AiModelBindingScope.chatVision
-                            ? '跟随当前聊天模型'
+                            ? context.tr("跟随当前聊天模型")
                             : '跟随默认',
                       ),
                       subtitle: Text(
@@ -274,7 +275,7 @@ class _AiModelBindingSheetState extends ConsumerState<_AiModelBindingSheet> {
                         TextButton(
                           key: const Key('retry-ai-binding-models'),
                           onPressed: _refreshModels,
-                          child: const Text('重试'),
+                          child: Text(context.tr("重试")),
                         ),
                       ],
                     ),
@@ -298,7 +299,7 @@ class _AiModelBindingSheetState extends ConsumerState<_AiModelBindingSheet> {
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('保存'),
+                    : Text(context.tr("保存")),
               ),
             ],
           ),

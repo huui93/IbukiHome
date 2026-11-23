@@ -13,6 +13,7 @@ import '../../../core/network/ai_provider_exceptions.dart';
 import '../../../data/ai/ai_provider_client.dart';
 import '../../../domain/ai/ai_provider_config.dart';
 import '../../../domain/ai/ai_provider_type.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class AiSettingsPage extends ConsumerWidget {
   const AiSettingsPage({super.key});
@@ -37,11 +38,11 @@ class AiSettingsPage extends ConsumerWidget {
           key: const Key('ai-settings-page'),
           padding: const EdgeInsets.symmetric(vertical: AppTokens.spacingS),
           children: [
-            const _SectionLabel('默认 AI'),
+            _SectionLabel(context.tr("默认 AI")),
             ListTile(
               key: const Key('default-ai-row'),
               leading: const _ProviderMark(label: 'AI'),
-              title: const Text('默认 Provider 与模型'),
+              title: Text(context.tr("默认 Provider 与模型")),
               subtitle: Text(
                 subtitle,
                 maxLines: 2,
@@ -51,15 +52,15 @@ class AiSettingsPage extends ConsumerWidget {
               onTap: () => _chooseDefault(context, ref, state),
             ),
             const Divider(indent: 70, endIndent: 16),
-            const _SectionLabel('配置'),
+            _SectionLabel(context.tr("配置")),
             ListTile(
               key: const Key('api-provider-list-entry'),
               leading: const _ProviderMark(
                 label: 'API',
                 icon: Icons.key_rounded,
               ),
-              title: const Text('API 配置'),
-              subtitle: const Text('管理 Provider、模型与连接状态'),
+              title: Text(context.tr("API 配置")),
+              subtitle: Text(context.tr("管理 Provider、模型与连接状态")),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => context.push(AppRoutes.aiProviders),
             ),
@@ -71,7 +72,7 @@ class AiSettingsPage extends ConsumerWidget {
                 0,
               ),
               child: Text(
-                '各模式共用模型与 API 配置，人格、记忆和内容分别管理。',
+                context.tr("各模式共用模型与 API 配置，人格、记忆和内容分别管理。"),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: context.ibukiColors.textMuted,
                 ),
@@ -96,9 +97,9 @@ class AiSettingsPage extends ConsumerWidget {
         )
         .toList(growable: false);
     if (candidates.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请先配置并测试一个 Provider。')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr("请先配置并测试一个 Provider。"))),
+      );
       await context.push(AppRoutes.aiProviders);
       return;
     }
@@ -111,9 +112,9 @@ class AiSettingsPage extends ConsumerWidget {
               key: const Key('default-ai-picker'),
               shrinkWrap: true,
               children: [
-                const ListTile(
-                  title: Text('选择默认 AI'),
-                  subtitle: Text('只显示已经连接测试成功的配置'),
+                ListTile(
+                  title: Text(context.tr("选择默认 AI")),
+                  subtitle: Text(context.tr("只显示已经连接测试成功的配置")),
                 ),
                 for (final config in candidates)
                   ListTile(
@@ -143,7 +144,7 @@ class AiSettingsPage extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('默认 AI 已保存。')));
+        ).showSnackBar(SnackBar(content: Text(context.tr("默认 AI 已保存。"))));
       }
     } on AiProviderException catch (error) {
       if (context.mounted) {
@@ -177,18 +178,20 @@ class AiProviderListPage extends ConsumerWidget {
           key: const Key('ai-provider-list-page'),
           padding: const EdgeInsets.only(bottom: AppTokens.spacingL),
           children: [
-            const _SectionLabel('官方 Provider'),
+            _SectionLabel(context.tr("官方 Provider")),
             for (final config in builtIns)
               _ProviderRow(config: config, state: state),
             const Divider(indent: 70, endIndent: 16),
-            _SectionLabel('自定义 · ${customs.length} 个'),
+            _SectionLabel(
+              context.tr("自定义 · {count} 个", {"count": customs.length}),
+            ),
             for (final config in customs)
               _ProviderRow(config: config, state: state),
             ListTile(
               key: const Key('add-custom-provider'),
               leading: const _ProviderMark(label: '+', icon: Icons.add_rounded),
-              title: const Text('添加自定义 API'),
-              subtitle: const Text('OpenAI Compatible，可不填写 API Key'),
+              title: Text(context.tr("添加自定义 API")),
+              subtitle: Text(context.tr("OpenAI Compatible，可不填写 API Key")),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => context.push(AppRoutes.newCustomAiProvider),
             ),
@@ -306,7 +309,7 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.surface,
             appBar: AppBar(leading: const BackButton()),
-            body: const Center(child: Text('没有找到这个 Provider。')),
+            body: Center(child: Text(context.tr("没有找到这个 Provider。"))),
           );
         }
         _ensureLoaded(config);
@@ -324,7 +327,7 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
               TextButton(
                 key: const Key('save-ai-provider'),
                 onPressed: _ready && !_saving && !_testing ? _save : null,
-                child: Text(_saving ? '保存中' : '保存'),
+                child: Text(_saving ? context.tr("保存中") : context.tr("保存")),
               ),
             ],
           ),
@@ -400,10 +403,10 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
                     ),
                     Text(
                       config.type == AiProviderType.kimi
-                          ? '由 Moonshot AI 提供'
+                          ? context.tr("由 Moonshot AI 提供")
                           : isCustom
                           ? 'OpenAI Compatible'
-                          : 'API Key 仅保存在本机安全存储',
+                          : context.tr("API Key 仅保存在本机安全存储"),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: context.ibukiColors.textMuted,
                       ),
@@ -418,8 +421,8 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
             IbukiTextField(
               key: const Key('provider-name-field'),
               controller: _nameController,
-              label: '名称',
-              hint: '例如：我的中转站',
+              label: context.tr("名称"),
+              hint: context.tr("例如：我的中转站"),
               textInputAction: TextInputAction.next,
               onChanged: (_) => _markChanged(),
             ),
@@ -428,14 +431,16 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
           IbukiTextField(
             key: const Key('provider-api-key-field'),
             controller: _apiKeyController,
-            label: isCustom ? 'API Key（可留空）' : 'API Key',
-            hint: '输入后将安全保存在本机',
+            label: isCustom ? context.tr("API Key（可留空）") : 'API Key',
+            hint: context.tr("输入后将安全保存在本机"),
             obscureText: _obscureKey,
             textInputAction: TextInputAction.next,
             onChanged: (_) => _markChanged(),
             suffixIcon: IbukiIconButton(
               key: const Key('toggle-api-key-visibility'),
-              tooltip: _obscureKey ? '显示 API Key' : '隐藏 API Key',
+              tooltip: _obscureKey
+                  ? context.tr("显示 API Key")
+                  : context.tr("隐藏 API Key"),
               icon: _obscureKey
                   ? Icons.visibility_outlined
                   : Icons.visibility_off_outlined,
@@ -446,13 +451,13 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
           IbukiTextField(
             key: const Key('provider-model-field'),
             controller: _modelController,
-            label: '模型',
-            hint: '选择或手动输入模型 ID',
+            label: context.tr("模型"),
+            hint: context.tr("选择或手动输入模型 ID"),
             textInputAction: TextInputAction.done,
             onChanged: (_) => _markChanged(),
             suffixIcon: IbukiIconButton(
               key: const Key('open-model-picker'),
-              tooltip: '选择模型',
+              tooltip: context.tr("选择模型"),
               icon: Icons.expand_more_rounded,
               onPressed: _openModelPicker,
             ),
@@ -469,9 +474,9 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
                   : () => _testConnection(modelsOnly: true),
             ),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(bottom: 12),
-            child: Text('刷新列表只查询模型；测试连接会发送一条简短请求，可能消耗少量额度。'),
+            child: Text(context.tr("刷新列表只查询模型；测试连接会发送一条简短请求，可能消耗少量额度。")),
           ),
           const SizedBox(height: AppTokens.spacingS),
           if (isCustom)
@@ -487,8 +492,8 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
             ListTile(
               key: const Key('provider-advanced-settings'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('高级设置'),
-              subtitle: const Text('官方 Base URL'),
+              title: Text(context.tr("高级设置")),
+              subtitle: Text(context.tr("官方 Base URL")),
               trailing: Icon(
                 _advancedOpen
                     ? Icons.expand_less_rounded
@@ -517,7 +522,7 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
               Expanded(
                 child: IbukiSecondaryButton(
                   key: const Key('test-ai-provider'),
-                  label: _testing ? '测试中…' : '测试连接',
+                  label: _testing ? context.tr("测试中…") : context.tr("测试连接"),
                   icon: Icons.wifi_tethering_rounded,
                   onPressed: _testing ? null : _testConnection,
                 ),
@@ -757,8 +762,8 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
 
   Future<void> _clearOfficial() async {
     if (!await _confirm(
-      title: '清除配置？',
-      message: '将清除 API Key、模型和测试状态，并恢复官方 Base URL。',
+      title: context.tr("清除配置？"),
+      message: context.tr("将清除 API Key、模型和测试状态，并恢复官方 Base URL。"),
     )) {
       return;
     }
@@ -775,8 +780,8 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
 
   Future<void> _deleteCustom() async {
     if (!await _confirm(
-      title: '删除自定义 Provider？',
-      message: '对应的 API Key 也会从安全存储中删除。',
+      title: context.tr("删除自定义 Provider？"),
+      message: context.tr("对应的 API Key 也会从安全存储中删除。"),
     )) {
       return;
     }
@@ -801,11 +806,11 @@ class _AiProviderConfigPageState extends ConsumerState<AiProviderConfigPage> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
+                child: Text(context.tr("取消")),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('确认'),
+                child: Text(context.tr("确认")),
               ),
             ],
           ),
@@ -875,12 +880,15 @@ class _AiModelPickerSheetState extends State<AiModelPickerSheet> {
             key: const Key('model-picker-sheet'),
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('选择模型', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                context.tr("选择模型"),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: AppTokens.spacingM),
               IbukiTextField(
                 key: const Key('model-search-field'),
                 controller: _searchController,
-                hint: '搜索模型…',
+                hint: context.tr("搜索模型…"),
                 prefixIcon: const Icon(Icons.search_rounded),
                 onChanged: (value) => setState(() => _query = value),
               ),
@@ -891,13 +899,13 @@ class _AiModelPickerSheetState extends State<AiModelPickerSheet> {
                     child: IbukiTextField(
                       key: const Key('manual-model-field'),
                       controller: _manualController,
-                      hint: '手动输入模型 ID',
+                      hint: context.tr("手动输入模型 ID"),
                     ),
                   ),
                   const SizedBox(width: AppTokens.spacingS),
                   IbukiSecondaryButton(
                     key: const Key('confirm-manual-model'),
-                    label: '使用',
+                    label: context.tr("使用"),
                     icon: Icons.check_rounded,
                     onPressed: () {
                       final value = _manualController.text.trim();
@@ -914,8 +922,8 @@ class _AiModelPickerSheetState extends State<AiModelPickerSheet> {
                     ? Center(
                         child: Text(
                           widget.models.isEmpty
-                              ? '测试连接后会在这里显示模型，也可以手动输入。'
-                              : '没有匹配的模型。',
+                              ? context.tr("测试连接后会在这里显示模型，也可以手动输入。")
+                              : context.tr("没有匹配的模型。"),
                           textAlign: TextAlign.center,
                         ),
                       )
@@ -932,7 +940,7 @@ class _AiModelPickerSheetState extends State<AiModelPickerSheet> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: incompatible
-                                ? const Text('不支持当前 Gemini Native 生成接口')
+                                ? Text(context.tr("不支持当前 Gemini Native 生成接口"))
                                 : null,
                             enabled: !incompatible,
                             trailing: model == widget.currentModel
@@ -1112,10 +1120,10 @@ class _AiSettingsError extends StatelessWidget {
           children: [
             const Icon(Icons.cloud_off_outlined, size: 36),
             const SizedBox(height: AppTokens.spacingM),
-            const Text('AI 配置暂时无法读取。'),
+            Text(context.tr("AI 配置暂时无法读取。")),
             const SizedBox(height: AppTokens.spacingM),
             IbukiSecondaryButton(
-              label: '重试',
+              label: context.tr("重试"),
               icon: Icons.refresh_rounded,
               onPressed: onRetry,
             ),

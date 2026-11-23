@@ -6,7 +6,10 @@ class ListChatMessages {
 
   final ChatRepository _chats;
 
-  Future<List<ChatMessage>> call(String sessionId) {
-    return _chats.listMessages(sessionId);
+  Future<List<ChatMessage>> call(
+    String sessionId, {
+    bool includeImageData = true,
+  }) {
+    return _chats.listMessages(sessionId, includeImageData: includeImageData);
   }
 }

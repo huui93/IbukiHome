@@ -11,7 +11,6 @@ class NovelMemoryPolicy {
 class ChatMemoryPolicy {
   const ChatMemoryPolicy._();
 
-  static const extractionMessageThreshold = 20;
   static const recentRawMessageCount = 30;
   static const ordinaryMemoryLimit = 8;
 }

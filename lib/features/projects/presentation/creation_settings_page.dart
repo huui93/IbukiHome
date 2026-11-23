@@ -13,6 +13,7 @@ import '../../../domain/projects/project.dart';
 import '../../ai/presentation/ai_ui_helpers.dart';
 import 'project_flow_widgets.dart';
 import 'novel_prompt_preset_sheet.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class CreationSettingsPage extends StatelessWidget {
   const CreationSettingsPage({required this.projectId, super.key});
@@ -196,7 +197,7 @@ class _SystemPromptTabState extends ConsumerState<_SystemPromptTab> {
                   alignment: Alignment.centerRight,
                   child: IbukiPrimaryButton(
                     key: const Key('save-system-prompt-button'),
-                    label: '保存',
+                    label: context.tr("保存"),
                     icon: Icons.save_outlined,
                     loading: _saving,
                     onPressed: _saving ? null : _save,
@@ -277,7 +278,7 @@ class _LongTermMemoryTabState extends ConsumerState<_LongTermMemoryTab> {
       top: false,
       child: digest.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const Center(child: Text('无法读取长期记忆。')),
+        error: (_, _) => Center(child: Text(context.tr("无法读取长期记忆。"))),
         data: (digestValue) => chunks.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, _) => const Center(child: Text('无法读取摘要块。')),
@@ -442,7 +443,7 @@ class _LongTermMemoryTabState extends ConsumerState<_LongTermMemoryTab> {
               ),
               IbukiPrimaryButton(
                 key: const Key('save-story-memory'),
-                label: '保存',
+                label: context.tr("保存"),
                 icon: Icons.save_outlined,
                 expand: true,
                 onPressed: () async {
@@ -653,11 +654,11 @@ class _OutlineTab extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(context.tr("取消")),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
+            child: Text(context.tr("删除")),
           ),
         ],
       ),
@@ -748,7 +749,7 @@ class _OutlineEditorSheetState extends ConsumerState<_OutlineEditorSheet> {
             const SizedBox(height: AppTokens.spacingM),
             IbukiPrimaryButton(
               key: const Key('save-outline-node-button'),
-              label: '保存',
+              label: context.tr("保存"),
               icon: Icons.save_outlined,
               expand: true,
               loading: _saving,
@@ -866,7 +867,7 @@ class _OutlineNodeCard extends StatelessWidget {
           ),
           PopupMenuButton<_OutlineAction>(
             key: Key('outline-menu-${node.id}'),
-            tooltip: '更多',
+            tooltip: context.tr("更多"),
             onSelected: (action) {
               switch (action) {
                 case _OutlineAction.edit:
@@ -881,8 +882,11 @@ class _OutlineNodeCard extends StatelessWidget {
                   onDelete();
               }
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: _OutlineAction.edit, child: Text('编辑')),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _OutlineAction.edit,
+                child: Text(context.tr("编辑")),
+              ),
               PopupMenuDivider(),
               PopupMenuItem(value: _OutlineAction.current, child: Text('设为当前')),
               PopupMenuItem(
@@ -894,7 +898,10 @@ class _OutlineNodeCard extends StatelessWidget {
                 child: Text('重新设为未开始'),
               ),
               PopupMenuDivider(),
-              PopupMenuItem(value: _OutlineAction.delete, child: Text('删除')),
+              PopupMenuItem(
+                value: _OutlineAction.delete,
+                child: Text(context.tr("删除")),
+              ),
             ],
           ),
           const SizedBox(width: 4),

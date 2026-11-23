@@ -195,8 +195,12 @@ class AppRoutes {
     return '/projects/${Uri.encodeComponent(projectId)}/world';
   }
 
-  static String newWorldCard(String projectId) {
-    return '${projectWorld(projectId)}/new';
+  static String newWorldCard(
+    String projectId, {
+    bool returnOnComplete = false,
+  }) {
+    final path = '${projectWorld(projectId)}/new';
+    return returnOnComplete ? '$path?return=1' : path;
   }
 
   static String deletedWorldCards(String projectId) {

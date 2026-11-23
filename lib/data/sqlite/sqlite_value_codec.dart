@@ -463,7 +463,7 @@ Map<String, Object?> chatMessageToSql(ChatMessage message) {
   };
 }
 
-ChatMessage chatMessageFromSql(SqlRow row) {
+ChatMessage chatMessageFromSql(SqlRow row, {bool deferImageDecoding = false}) {
   const modelName = 'ChatMessage';
   return ChatMessage(
     metadata: metadataFromSql(row, modelName),
@@ -472,12 +472,14 @@ ChatMessage chatMessageFromSql(SqlRow row) {
     role: ChatMessageRole.fromJson(_requiredString(row, 'role', modelName)),
     content: _requiredString(row, 'content', modelName),
     finishReason: _optionalFinishReason(row, 'finish_reason', modelName),
+    hasImage: row['has_image'] == 1,
     image: row['image_json'] == null
         ? null
         : ChatImage.fromJson(
             Map<String, dynamic>.from(
               jsonDecode(row['image_json'] as String) as Map,
             ),
+            deferDecoding: deferImageDecoding,
           ),
   );
 }

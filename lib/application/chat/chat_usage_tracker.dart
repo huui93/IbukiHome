@@ -50,15 +50,21 @@ class ChatUsageTracker {
     required String operation,
     required AiGenerationRuntime runtime,
     required AiGenerationRequest request,
+    AiRequestCancellation? cancellation,
   }) async {
     final pending = _PendingUsage(sessionId, operation, request);
     try {
-      final output = await runtime.generate(pending.observedRequest);
+      final output = await runtime.generate(
+        pending.observedRequest,
+        cancellation: cancellation,
+      );
       pending.output.write(output);
       pending.status = 'stop';
       return output;
-    } catch (_) {
-      pending.status = 'failed';
+    } catch (error) {
+      pending.status = error is AiProviderCancelledException
+          ? 'cancelled'
+          : 'failed';
       rethrow;
     } finally {
       await _save(pending);

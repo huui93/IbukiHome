@@ -16,7 +16,7 @@ void main() {
 
   group('SQLite ChatPersona repository', () {
     test('fresh schema is version 6', () {
-      expect(SqliteSchema.version, 21);
+      expect(SqliteSchema.version, 22);
     });
 
     test('fresh schema includes chat_personas table', () async {

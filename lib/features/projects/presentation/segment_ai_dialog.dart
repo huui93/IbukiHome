@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/localization/app_localizations.dart';
 import '../../../app/routing/app_routes.dart';
 import '../../../app/theme/app_tokens.dart';
 import '../../../application/ai/ai_draft_update.dart';
@@ -55,6 +56,7 @@ class _SegmentAiDraftDialogState extends ConsumerState<SegmentAiDraftDialog> {
   String? _requestId;
   String _draft = '';
   String? _error;
+  String? _outputNotice;
   AiUiErrorPresentation? _errorDetail;
   var _generating = false;
   var _completed = false;
@@ -134,6 +136,10 @@ class _SegmentAiDraftDialogState extends ConsumerState<SegmentAiDraftDialog> {
                   ),
                   child: SingleChildScrollView(child: SelectableText(_draft)),
                 ),
+              ],
+              if (_outputNotice case final notice?) ...[
+                const SizedBox(height: 8),
+                Text(context.tr(notice)),
               ],
               if (_error != null) ...[
                 const SizedBox(height: AppTokens.spacingS),
@@ -245,6 +251,7 @@ class _SegmentAiDraftDialogState extends ConsumerState<SegmentAiDraftDialog> {
       _requestId = requestId;
       _draft = '';
       _error = null;
+      _outputNotice = null;
       _errorDetail = null;
       _completed = false;
       _generating = true;
@@ -288,6 +295,7 @@ class _SegmentAiDraftDialogState extends ConsumerState<SegmentAiDraftDialog> {
           _draft = update.draft;
           _generating = update.status == AiDraftStatus.streaming;
           _completed = update.status == AiDraftStatus.completed;
+          _outputNotice = update.outputNotice;
           if (update.status == AiDraftStatus.cancelled) {
             _error = '生成已停止，草稿不会写入正文。';
           }

@@ -40,6 +40,7 @@ class AutoStoryRunUpdate {
     this.error,
     this.stopReason,
     this.pluginNotice,
+    this.outputNotice,
   });
 
   final String projectId;
@@ -50,6 +51,7 @@ class AutoStoryRunUpdate {
   final Object? error;
   final AutoStoryStopReason? stopReason;
   final String? pluginNotice;
+  final String? outputNotice;
 }
 
 class AutoStoryRunner {
@@ -154,6 +156,7 @@ class AutoStoryRunner {
                   requestId: requestId,
                   draft: update.draft,
                   pluginNotice: update.pluginNotice,
+                  outputNotice: update.outputNotice,
                 ),
               );
             case AiDraftStatus.cancelled:

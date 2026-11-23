@@ -1421,7 +1421,33 @@ void main() {
   });
   group('novel output length targets', () {
     test(
-      'default preserves old budget and custom range lets service manage its output cap',
+      'work temperature reaches generation and labels are removed before clipping',
+      () async {
+        final f = await _Fixture.create(output: ['【第 １２ 段】\n风 吹开💡门。']);
+        await f.outputLimits.save(
+          const NovelOutputLimits(
+            projectId: 'project-1',
+            maximum: 4,
+            temperature: .35,
+          ),
+          expectedRevision: 0,
+          now: _later,
+        );
+        final updates = await f
+            .next(requestId: 'cap', segmentId: 'cap-segment')
+            .toList();
+        expect(f.runtime.requests.single.temperature, .35);
+        expect(f.runtime.requests.single.maxTokens, 136);
+        expect(
+          f.runtime.requests.single.messages.last.content,
+          isNot(contains('[段落 ')),
+        );
+        expect(updates.last.savedSegment!.content, '风 吹开💡');
+        expect(updates.last.outputNotice, contains('最多字数'));
+      },
+    );
+    test(
+      'default preserves old budget and custom range sends a token allowance',
       () async {
         final f = await _Fixture.create();
         await f
@@ -1444,7 +1470,7 @@ void main() {
         await f
             .next(requestId: 'custom', segmentId: 'custom-segment')
             .drain<void>();
-        expect(f.runtime.requests.last.maxTokens, isNull);
+        expect(f.runtime.requests.last.maxTokens, 728);
         expect(f.runtime.requests.last.systemPrompt, contains('100–300 字'));
         expect(f.runtime.requests.last.systemPrompt, contains('输出上限始终优先'));
       },
@@ -1519,6 +1545,7 @@ void main() {
             .toList();
         expect(f.runtime.requests, hasLength(1));
         expect(updates.last.savedSegment!.content, '模型上限内的正文');
+        expect(updates.last.outputNotice, contains('未达到最少字数'));
       },
     );
   });

@@ -5,6 +5,7 @@ import 'package:ibukihome/data/sqlite/sqlite_backup_snapshot_store.dart';
 import 'package:ibukihome/domain/projects/novel_output_limits.dart';
 import 'package:ibukihome/domain/projects/project.dart';
 import 'package:ibukihome/domain/backup/backup_models.dart';
+import 'package:ibukihome/data/sqlite/novel_output_v19_schema.dart';
 import 'sqlite_test_helpers.dart';
 
 void main() {
@@ -35,7 +36,7 @@ void main() {
       await f.database.close();
       final reopened = await reopenFixture(f);
       final repo = SQLiteNovelOutputLimitsRepository(reopened.database);
-      expect(await (await reopened.database.database).getVersion(), 21);
+      expect(await (await reopened.database.database).getVersion(), 22);
       expect(await reopened.projects.getProject('a'), original);
       expect((await repo.get('a')).isDefault, isTrue);
       await repo.save(
@@ -141,6 +142,53 @@ void main() {
       );
     },
   );
+  test(
+    'v21 output rows survive migration and temperature joins backup copies',
+    () async {
+      final f = await fixture();
+      final db = await f.database.database;
+      await db.execute('DROP TABLE novel_output_settings');
+      await createNovelOutputV19Schema(db);
+      await db.insert('novel_output_settings', {
+        'id': 'legacy-output',
+        'project_id': 'a',
+        'minimum_characters': 80,
+        'maximum_characters': 120,
+        'revision': 1,
+        'updated_at': DateTime.utc(2026).toIso8601String(),
+      });
+      await db.setVersion(21);
+      await f.database.close();
+      final opened = await reopenFixture(f);
+      final repo = SQLiteNovelOutputLimitsRepository(opened.database);
+      final previous = await repo.get('a');
+      expect(previous.minimum, 80);
+      expect(previous.temperature, isNull);
+      await repo.save(
+        const NovelOutputLimits(
+          projectId: 'a',
+          minimum: 80,
+          maximum: 120,
+          temperature: .4,
+        ),
+        expectedRevision: 1,
+        now: DateTime.utc(2026),
+      );
+      final backup = SQLiteBackupSnapshotStore(opened.database);
+      final snapshot = await backup.buildSnapshot();
+      await backup.restore(
+        snapshot,
+        mode: BackupRestoreMode.merge,
+        restoredAssets: {},
+      );
+      final copy = (await opened.projects.listProjects()).singleWhere(
+        (p) => p.title == 'a' && p.id != 'a',
+      );
+      expect((await repo.get(copy.id)).temperature, .4);
+      expect((await repo.get('b')).temperature, isNull);
+    },
+  );
+
   test('word targets retain defaults and model limits outrank the minimum', () {
     const empty = NovelOutputLimits(projectId: 'a');
     expect(empty.promptSuffix, '');

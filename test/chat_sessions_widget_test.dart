@@ -7,6 +7,7 @@ import 'package:ibukihome/domain/chat/chat_usage_record.dart';
 import 'package:ibukihome/domain/ai/ai_token_usage.dart';
 
 import 'package:flutter/material.dart';
+import 'package:ibukihome/features/chat/presentation/chat_image_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -26,6 +27,94 @@ import 'package:ibukihome/domain/plugins/ibuki_plugin_manifest.dart';
 import 'package:ibukihome/domain/plugins/installed_plugin.dart';
 
 void main() {
+  testWidgets('a failed text reply can be retried after reopening', (
+    tester,
+  ) async {
+    final c = await _pumpChatApp(
+      tester,
+      ids: [
+        'session-1',
+        'retry-user',
+        'retry-request',
+        'retry-ai',
+        'retry-memory',
+        'second-request',
+        'second-ai',
+      ],
+    );
+    await _createSession(tester);
+    await _sendMessage(tester, '请回答这条文字消息');
+    final transient = find.byKey(const Key('chat-ai-retry-button'));
+    expect(transient, findsOneWidget);
+    await tester.tap(find.byKey(const Key('chat-back-button')));
+    await tester.pumpAndSettle();
+    _go(tester, AppRoutes.chatSession('session-1'));
+    await tester.pumpAndSettle();
+    expect(find.text('请回答这条文字消息'), findsOneWidget);
+    final recovered = find.byKey(const Key('chat-text-retry'));
+    expect(recovered, findsOneWidget);
+    await tester.tap(recovered);
+    await tester.pumpAndSettle();
+    expect(transient, findsOneWidget);
+    expect(
+      await c.read(chatRepositoryProvider).listMessages('session-1'),
+      hasLength(1),
+    );
+  });
+
+  testWidgets('new chat confirms before discarding the current draft', (
+    tester,
+  ) async {
+    await _pumpChatApp(tester);
+    await _createSession(tester);
+    final input = find.byKey(const Key('chat-input-field'));
+    final menu = find.byKey(const Key('chat-session-detail-menu'));
+    final confirmation = find.byKey(const Key('discard-chat-draft-dialog'));
+    Future<void> newChat() async {
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('新聊天'));
+      await tester.pumpAndSettle();
+    }
+
+    await tester.enterText(input, '仍在编辑的草稿');
+    await tester.pump();
+    await newChat();
+    expect(confirmation, findsOneWidget);
+    await tester.tap(find.text('继续编辑'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(input).controller!.text, '仍在编辑的草稿');
+    await newChat();
+    await tester.tap(find.text('放弃'));
+    await tester.pumpAndSettle();
+    expect(confirmation, findsNothing);
+    expect(tester.widget<TextField>(input).controller!.text, isEmpty);
+  });
+
+  testWidgets(
+    'image thumbnails stay bounded and reuse the decode when the description changes',
+    (tester) async {
+      final first = imageFixture();
+      Widget view(ChatImage image) => MaterialApp(
+        home: Scaffold(
+          body: Center(child: ChatImagePreview(image: image)),
+        ),
+      );
+      await tester.pumpWidget(view(first));
+      await tester.pumpAndSettle();
+      final box = find.byKey(const Key('chat-image-thumbnail-box'));
+      expect(tester.getSize(box), const Size(180, 180));
+      final finder = find.descendant(of: box, matching: find.byType(Image));
+      final initial = tester.widget<Image>(finder).image as ResizeImage;
+      await tester.pumpWidget(view(first.recognized('新识图记录')));
+      await tester.pumpAndSettle();
+      final current = tester.widget<Image>(finder).image as ResizeImage;
+      expect(current.imageProvider, same(initial.imageProvider));
+      expect(current.width, current.height);
+      expect(current.policy, ResizeImagePolicy.fit);
+    },
+  );
+
   testWidgets(
     'chat plus picks and removes a draft image without creating a message',
     (tester) async {
@@ -92,8 +181,10 @@ void main() {
       await _pumpChatApp(tester);
       _go(tester, AppRoutes.settings);
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const Key('settings-chat-vision')));
-      await tester.tap(find.byKey(const Key('settings-chat-vision')));
+      final vision = find.byKey(const Key('settings-chat-vision'));
+      await Scrollable.ensureVisible(tester.element(vision), alignment: 0.3);
+      await tester.pumpAndSettle();
+      await tester.tap(vision);
       await tester.pumpAndSettle();
       expect(find.text('聊天识图模型'), findsOneWidget);
       expect(find.text('跟随当前聊天模型'), findsWidgets);
@@ -685,7 +776,7 @@ void main() {
       expect(find.text('会话摘要'), findsOneWidget);
       expect(find.byKey(const Key('search-session-memory')), findsOneWidget);
       expect(find.text('还没有长期记忆。'), findsOneWidget);
-      await tester.pageBack();
+      await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('chat-tools-button')));
       await tester.pumpAndSettle();
@@ -693,7 +784,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('暂无完整的服务用量记录'), findsOneWidget);
       expect(find.byKey(const Key('chat-usage-page')), findsOneWidget);
-      await tester.pageBack();
+      await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('chat-tools-button')));
       await tester.pumpAndSettle();

@@ -8,6 +8,7 @@ import '../../../application/chat/chat_controls_providers.dart';
 import '../../../application/chat/chat_usage_tracker.dart';
 import '../../../application/providers/repository_providers.dart';
 import '../../../domain/chat/chat_usage_record.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class ChatUsagePage extends ConsumerWidget {
   const ChatUsagePage({required this.sessionId, super.key});
@@ -24,7 +25,7 @@ class ChatUsagePage extends ConsumerWidget {
         key: const Key('chat-usage-page'),
         appBar: AppBar(
           leading: const BackButton(),
-          title: const Text('Token 用量'),
+          title: Text(context.tr("Token 用量")),
         ),
         body: usage.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -67,7 +68,7 @@ class ChatUsagePage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
               children: [
                 Text(
-                  session.value?.title ?? '当前会话',
+                  session.value?.title ?? context.tr("当前会话"),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium,
@@ -180,7 +181,7 @@ class ChatUsagePage extends ConsumerWidget {
                         Icons.calculate_outlined,
                         color: theme.colorScheme.primary,
                       ),
-                      title: const Text('本地估算'),
+                      title: Text(context.tr("本地估算")),
                       subtitle: Text(
                         '${messages.length} 条消息 · 当前文本约 ${_number(textEstimate)} tokens',
                       ),
@@ -198,7 +199,10 @@ class ChatUsagePage extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('请求记录', style: theme.textTheme.titleMedium),
+                      child: Text(
+                        context.tr("请求记录"),
+                        style: theme.textTheme.titleMedium,
+                      ),
                     ),
                     Text(
                       '${records.length} 次',
@@ -337,7 +341,7 @@ class _UsageRow extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
               ),
-              _Badge(record.hasCompleteReport ? '服务返回' : '本地估算'),
+              _Badge(record.hasCompleteReport ? '服务返回' : context.tr("本地估算")),
             ],
           ),
           const SizedBox(height: 8),

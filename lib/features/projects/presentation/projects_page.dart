@@ -11,6 +11,7 @@ import '../../../domain/projects/project.dart';
 import 'project_flow_widgets.dart';
 import '../../../app/widgets/ibuki_glass_surface.dart';
 import '../../../app/widgets/ibuki_motion_widgets.dart';
+import '../../../app/localization/app_localizations.dart';
 
 enum ProjectsPageMode { selector, bookshelf, creation }
 
@@ -39,9 +40,9 @@ class ProjectsPage extends ConsumerWidget {
       child: projects.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => ProjectFlowErrorView(
-          title: '项目读取失败',
+          title: context.tr("项目读取失败"),
           message: _friendlyError(error),
-          actionLabel: '重试',
+          actionLabel: context.tr("重试"),
           onAction: () {
             ref.invalidate(projectListProvider);
             ref.invalidate(_rootNovelListProvider);
@@ -67,7 +68,7 @@ class ProjectsPage extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        '项目',
+                        context.tr("项目"),
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.w800),
                       ),
@@ -76,7 +77,7 @@ class ProjectsPage extends ConsumerWidget {
                       key: const Key('new-project-button'),
                       onPressed: () => context.push(AppRoutes.newProject),
                       icon: const Icon(Icons.add),
-                      label: const Text('新建'),
+                      label: Text(context.tr("新建")),
                     ),
                   ],
                 ),
@@ -105,7 +106,7 @@ class ProjectsPage extends ConsumerWidget {
                           Icons.add_rounded,
                           color: Theme.of(context).colorScheme.primary,
                         ),
-                        title: const Text('创作新的小说'),
+                        title: Text(context.tr("创作新的小说")),
                         trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => context.push(AppRoutes.newProject),
                       ),
@@ -138,7 +139,7 @@ class _EmptyBookshelfState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              '还没有创作的作品',
+              context.tr("还没有创作的作品"),
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -156,16 +157,16 @@ class _EmptyProjectsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       key: Key('empty-projects-state'),
       padding: EdgeInsets.symmetric(vertical: AppTokens.spacingXl),
       child: Column(
         children: [
           Icon(Icons.folder_open_outlined, size: 36),
           SizedBox(height: AppTokens.spacingM),
-          Text('还没有作品'),
+          Text(context.tr("还没有作品")),
           SizedBox(height: AppTokens.spacingS),
-          Text('新建作品后即可进入正文创作工作台。'),
+          Text(context.tr("新建作品后即可进入正文创作工作台。")),
         ],
       ),
     );
@@ -236,11 +237,15 @@ class _ProjectListItem extends ConsumerWidget {
                 spacing: AppTokens.spacingS,
                 runSpacing: AppTokens.spacingXs,
                 children: [
-                  Text('正文 $segmentCount 段'),
-                  Text('更新 ${formatLocalDateTime(project.updatedAt)}'),
+                  Text(context.tr("正文 {count} 段", {"count": segmentCount})),
+                  Text(
+                    context.tr("更新 {date}", {
+                      "date": formatLocalDateTime(project.updatedAt),
+                    }),
+                  ),
                   if (isCurrent)
                     Text(
-                      modernList ? '当前创作' : '当前项目',
+                      modernList ? context.tr("当前创作") : context.tr("当前项目"),
                       key: Key('current-project-${project.id}'),
                       style: TextStyle(color: scheme.primary),
                     ),
@@ -260,7 +265,7 @@ class _ProjectListItem extends ConsumerWidget {
             if (context.mounted) {
               ScaffoldMessenger.of(
                 context,
-              ).showSnackBar(const SnackBar(content: Text('作品已不可用。')));
+              ).showSnackBar(SnackBar(content: Text(context.tr("作品已不可用。"))));
             }
             return;
           }

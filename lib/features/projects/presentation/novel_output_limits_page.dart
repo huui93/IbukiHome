@@ -7,6 +7,7 @@ import '../../../application/projects/novel_output_limits_providers.dart';
 import '../../../application/providers/repository_providers.dart';
 import '../../../domain/projects/novel_output_limits.dart';
 import '../../../core/errors/data_exceptions.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class NovelOutputLimitsPage extends ConsumerStatefulWidget {
   const NovelOutputLimitsPage({required this.projectId, super.key});
@@ -17,7 +18,9 @@ class NovelOutputLimitsPage extends ConsumerStatefulWidget {
 }
 
 class _NovelOutputLimitsPageState extends ConsumerState<NovelOutputLimitsPage> {
-  final _minimum = TextEditingController(), _maximum = TextEditingController();
+  final _minimum = TextEditingController();
+  final _maximum = TextEditingController();
+  final _temperature = TextEditingController();
   NovelOutputLimits? _loaded;
   bool _saving = false, _dirty = false;
   String? _error;
@@ -25,6 +28,7 @@ class _NovelOutputLimitsPageState extends ConsumerState<NovelOutputLimitsPage> {
   void dispose() {
     _minimum.dispose();
     _maximum.dispose();
+    _temperature.dispose();
     super.dispose();
   }
 
@@ -39,15 +43,15 @@ class _NovelOutputLimitsPageState extends ConsumerState<NovelOutputLimitsPage> {
           final discard = await showDialog<bool>(
             context: context,
             builder: (dialog) => AlertDialog(
-              title: const Text('放弃未保存的修改？'),
+              title: Text(context.tr("放弃未保存的修改？")),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialog, false),
-                  child: const Text('继续编辑'),
+                  child: Text(context.tr("继续编辑")),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(dialog, true),
-                  child: const Text('放弃'),
+                  child: Text(context.tr("放弃")),
                 ),
               ],
             ),
@@ -64,7 +68,7 @@ class _NovelOutputLimitsPageState extends ConsumerState<NovelOutputLimitsPage> {
         child: Scaffold(
           key: const Key('novel-output-limits-page'),
           appBar: AppBar(
-            title: const Text('输出字数'),
+            title: Text(context.tr("输出字数与温度")),
             leading: const BackButton(),
           ),
           body: limits.when(
@@ -75,45 +79,70 @@ class _NovelOutputLimitsPageState extends ConsumerState<NovelOutputLimitsPage> {
                 _loaded = value;
                 _minimum.text = value.minimum?.toString() ?? '';
                 _maximum.text = value.maximum?.toString() ?? '';
+                _temperature.text = value.temperature?.toString() ?? '';
               }
               return ListView(
                 padding: const EdgeInsets.all(18),
                 children: [
                   Text(
-                    project?.title ?? '当前作品',
+                    project?.title ?? context.tr("当前作品"),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
-                  const Text('设置每次生成正文的目标字数。留空使用默认，也可以只设置一侧。'),
+                  Text(context.tr('为当前作品设置字数和温度，留空使用默认。')),
                   const SizedBox(height: 20),
                   IbukiGlassSurface(
                     strong: true,
                     padding: const EdgeInsets.all(18),
                     child: Column(
                       children: [
-                        _field(
-                          _minimum,
-                          '最少字数',
-                          const Key('novel-output-minimum'),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _field(
+                                _minimum,
+                                '最少字数',
+                                const Key('novel-output-minimum'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _field(
+                                _maximum,
+                                '最多字数',
+                                const Key('novel-output-maximum'),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 18),
-                        _field(
-                          _maximum,
-                          '最多字数',
-                          const Key('novel-output-maximum'),
+                        const SizedBox(height: 12),
+                        TextField(
+                          key: const Key('novel-output-temperature'),
+                          controller: _temperature,
+                          enabled: !_saving,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          onChanged: (_) => _markDirty(),
+                          decoration: InputDecoration(
+                            labelText: context.tr('温度（0–2）'),
+                            hintText: context.tr('默认'),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    '用于生成下一段、自动剧情和整段重写。局部修改按选中内容处理。\n\n字数与模型的 token 上限不是同一单位。实际输出以模型和服务允许的上限为准，字数范围作为创作目标。',
+                  Text(
+                    context.tr(
+                      '最大字数在保存时执行；最低字数是目标，模型输出不足会提示。局部修改只应用温度。部分模型或推理模式使用服务默认温度。',
+                    ),
                   ),
                   if (_error != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 14),
                       child: Text(
-                        _error!,
+                        context.tr(_error!),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.error,
                         ),
@@ -123,7 +152,7 @@ class _NovelOutputLimitsPageState extends ConsumerState<NovelOutputLimitsPage> {
                   FilledButton(
                     key: const Key('save-novel-output-limits'),
                     onPressed: _saving ? null : _save,
-                    child: Text(_saving ? '保存中' : '保存'),
+                    child: Text(_saving ? context.tr("保存中") : context.tr("保存")),
                   ),
                   TextButton(
                     key: const Key('reset-novel-output-limits'),
@@ -132,10 +161,11 @@ class _NovelOutputLimitsPageState extends ConsumerState<NovelOutputLimitsPage> {
                         : () => setState(() {
                             _minimum.clear();
                             _maximum.clear();
+                            _temperature.clear();
                             _dirty = true;
                             _error = null;
                           }),
-                    child: const Text('恢复默认'),
+                    child: Text(context.tr('恢复默认')),
                   ),
                 ],
               );
@@ -153,16 +183,28 @@ class _NovelOutputLimitsPageState extends ConsumerState<NovelOutputLimitsPage> {
         enabled: !_saving,
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        onChanged: (_) => setState(() {
-          _dirty = true;
-          _error = null;
-        }),
+        onChanged: (_) => _markDirty(),
         decoration: InputDecoration(
-          labelText: label,
-          hintText: '默认',
-          suffixText: '字',
+          labelText: context.tr(label),
+          hintText: context.tr("默认"),
+          suffixText: context.tr('字'),
         ),
       );
+  void _markDirty() => setState(() {
+    _dirty = true;
+    _error = null;
+  });
+
+  double? _parseTemperature() {
+    final text = _temperature.text.trim();
+    if (text.isEmpty) return null;
+    final value = double.tryParse(text.replaceAll(',', '.'));
+    if (value == null || !value.isFinite || value < 0 || value > 2) {
+      throw const FormatException('温度须在 0 到 2 之间；留空使用默认。');
+    }
+    return value;
+  }
+
   int? _parse(String text) {
     if (text.trim().isEmpty) return null;
     final value = int.tryParse(text.trim());
@@ -183,16 +225,18 @@ class _NovelOutputLimitsPageState extends ConsumerState<NovelOutputLimitsPage> {
         projectId: widget.projectId,
         minimum: _parse(_minimum.text),
         maximum: _parse(_maximum.text),
+        temperature: _parseTemperature(),
       );
-      _loaded = await ref
+      final saved = await ref
           .read(novelOutputLimitsRepositoryProvider)
           .save(
             value,
             expectedRevision: _loaded!.revision,
             now: ref.read(utcClockProvider).now(),
           );
-      ref.invalidate(novelOutputLimitsProvider(widget.projectId));
       if (!mounted) return;
+      _loaded = saved;
+      ref.invalidate(novelOutputLimitsProvider(widget.projectId));
       setState(() {
         _dirty = false;
         _saving = false;

@@ -7,6 +7,7 @@ import '../../../app/widgets/ibuki_glass_surface.dart';
 import '../../../application/projects/txt_novel_source.dart';
 import '../../../application/projects/txt_novel_providers.dart';
 import '../../../application/providers/repository_providers.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class ImportTxtNovelPage extends ConsumerStatefulWidget {
   const ImportTxtNovelPage({super.key});
@@ -37,7 +38,7 @@ class _ImportTxtNovelPageState extends ConsumerState<ImportTxtNovelPage> {
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             children: [
               Text(
-                '将 TXT 作为一部新小说导入。',
+                context.tr("将 TXT 作为一部新小说导入。"),
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               const SizedBox(height: 16),
@@ -45,7 +46,11 @@ class _ImportTxtNovelPageState extends ConsumerState<ImportTxtNovelPage> {
                 key: const Key('pick-txt-novel'),
                 onPressed: _busy ? null : _pick,
                 icon: const Icon(Icons.file_open_outlined),
-                label: Text(_novel == null ? '选择 TXT 文件' : '更换 TXT 文件'),
+                label: Text(
+                  _novel == null
+                      ? context.tr("选择 TXT 文件")
+                      : context.tr("更换 TXT 文件"),
+                ),
               ),
               if (_busy)
                 const Padding(
@@ -66,14 +71,18 @@ class _ImportTxtNovelPageState extends ConsumerState<ImportTxtNovelPage> {
               if (_novel case final novel?) ...[
                 const SizedBox(height: 16),
                 Text(
-                  '${novel.fileName} · ${novel.characters} 字 · ${novel.encoding}',
+                  context.tr("{file} · {count} 字 · {encoding}", {
+                    "file": novel.fileName,
+                    "count": novel.characters,
+                    "encoding": novel.encoding,
+                  }),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   key: const Key('txt-novel-title'),
                   controller: _title,
                   enabled: !_busy,
-                  decoration: const InputDecoration(labelText: '小说名称'),
+                  decoration: InputDecoration(labelText: context.tr("小说名称")),
                 ),
                 const SizedBox(height: 16),
                 IbukiGlassSurface(
@@ -99,7 +108,7 @@ class _ImportTxtNovelPageState extends ConsumerState<ImportTxtNovelPage> {
                 key: const Key('confirm-txt-import'),
                 onPressed: _busy || _novel == null ? null : _import,
                 icon: const Icon(Icons.download_done_rounded),
-                label: const Text('导入小说'),
+                label: Text(context.tr("导入小说")),
               ),
             ),
           ),
@@ -162,9 +171,11 @@ class _ImportTxtNovelPageState extends ConsumerState<ImportTxtNovelPage> {
         ref,
         areas: const [RepositoryDataArea.projects, RepositoryDataArea.segments],
       );
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('《${project.title}》已导入。')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr("《{title}》已导入。", {"title": project.title})),
+        ),
+      );
       context.go(AppRoutes.novel);
     } catch (error) {
       if (mounted) setState(() => _error = _describe(error));

@@ -181,7 +181,7 @@ with ZipFile(target, "w", ZIP_DEFLATED) as archive:
 | `top_p`、`top_k`、`frequency_penalty`、`presence_penalty`、`seed` | 可选采样建议。具体字段和数值范围由当前模型适配器决定，`seed: -1` 表示使用随机默认 |
 | `continuePrefill` | 布尔值，申请将上一段末尾用作原生续写预填充。预览版只对识别到的兼容 Claude 3 系列条件应用 |
 
-检查面板的 `requested` 是预设和用户设置合并后的建议值。`effective` 是宿主预算与模型校验后的结果。`wireParameters` 是适配器构造实际请求时记录的参数。上下文 token 数是本地估算；达到预算时，宿主先移除较早的历史块。固定内容本身超出额度时，需要缩短预设或增大额度。
+检查面板的 `requested` 包含预设和故事线建议，以及作品设置中明确指定的 `projectTemperature` 和 `projectOutputTokenLimit`。作品温度优先于插件建议，作品字数推算的 token 额度与插件额度取较小者，模型和宿主限制仍优先。`effective` 是宿主预算与模型校验后的结果。`wireParameters` 是适配器构造实际请求时记录的参数。上下文 token 数是本地估算；达到预算时，宿主先移除较早的历史块。固定内容本身超出额度时，需要缩短预设或增大额度。
 
 ### 原生记忆、展示和结束故事线
 

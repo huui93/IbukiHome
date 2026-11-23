@@ -9,6 +9,7 @@ import '../../../application/providers/repository_providers.dart';
 import '../../mascot/application/mascot_controller.dart';
 import '../../mascot/domain/mascot_action.dart';
 import 'project_flow_widgets.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class NewProjectPage extends ConsumerStatefulWidget {
   const NewProjectPage({super.key});
@@ -50,7 +51,7 @@ class _NewProjectPageState extends ConsumerState<NewProjectPage> {
               padding: const EdgeInsets.all(AppTokens.spacingM),
               children: [
                 Text(
-                  '新建项目',
+                  context.tr("新建项目"),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -62,7 +63,7 @@ class _NewProjectPageState extends ConsumerState<NewProjectPage> {
                       ? null
                       : () => context.push(AppRoutes.importTxtNovel),
                   icon: const Icon(Icons.file_upload_outlined),
-                  label: const Text('从 TXT 导入小说'),
+                  label: Text(context.tr("从 TXT 导入小说")),
                 ),
                 const MemoryDataNotice(),
                 const SizedBox(height: AppTokens.spacingM),
@@ -72,7 +73,7 @@ class _NewProjectPageState extends ConsumerState<NewProjectPage> {
                   enabled: !_isSaving,
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
-                    labelText: '项目名称',
+                    labelText: context.tr("项目名称"),
                     errorText: _titleError,
                   ),
                 ),
@@ -84,8 +85,8 @@ class _NewProjectPageState extends ConsumerState<NewProjectPage> {
                   keyboardType: TextInputType.multiline,
                   minLines: 3,
                   maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: '项目说明（可选）',
+                  decoration: InputDecoration(
+                    labelText: context.tr("项目说明（可选）"),
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -112,7 +113,9 @@ class _NewProjectPageState extends ConsumerState<NewProjectPage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.check_rounded),
-                  label: Text(_isSaving ? '保存中' : '创建项目'),
+                  label: Text(
+                    _isSaving ? context.tr("保存中") : context.tr("创建项目"),
+                  ),
                 ),
               ),
             ),
@@ -140,7 +143,7 @@ class _NewProjectPageState extends ConsumerState<NewProjectPage> {
       setState(() {
         _titleError = '项目名称不能为空';
       });
-      _showSnack('请先填写项目名称。');
+      _showSnack(context.tr("请先填写项目名称。"));
       return;
     }
 

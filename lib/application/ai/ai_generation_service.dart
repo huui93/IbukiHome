@@ -205,8 +205,14 @@ class AiGenerationService implements AiDetailedGenerationRuntime {
     AiGenerationRequest request, {
     AiRequestCancellation? cancellation,
   }) async {
+    if (cancellation?.isCancelled == true) {
+      throw const AiProviderCancelledException();
+    }
     final resolved = await _resolve(request);
     final apiKey = await _apiKeyStore.read(resolved.config.apiKeyRef) ?? '';
+    if (cancellation?.isCancelled == true) {
+      throw const AiProviderCancelledException();
+    }
     final lease = _acquireClient(resolved.config, apiKey);
     try {
       request.reportTransportStarted(

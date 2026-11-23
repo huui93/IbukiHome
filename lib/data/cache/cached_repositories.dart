@@ -1,4 +1,5 @@
 import '../../domain/characters/character_card.dart';
+import '../../domain/chat/chat_image.dart';
 import '../../domain/chat/chat_message.dart';
 import '../../domain/chat/chat_persona.dart';
 import '../../domain/chat/chat_session.dart';
@@ -732,7 +733,10 @@ class CachedChatRepository implements ChatRepository, InvalidatableReadCache {
   final Map<String, ChatSession> _sessions = {};
   final Map<_SessionQuery, List<ChatSession>> _sessionLists = {};
   final Map<String, ChatMessage> _messages = {};
-  final Map<({String sessionId, bool includeDeleted}), List<ChatMessage>>
+  final Map<
+    ({String sessionId, bool includeDeleted, bool includeImageData}),
+    List<ChatMessage>
+  >
   _messageLists = {};
 
   int get retainedEntryCount => _sessions.length + _messages.length;
@@ -832,8 +836,13 @@ class CachedChatRepository implements ChatRepository, InvalidatableReadCache {
   Future<List<ChatMessage>> listMessages(
     String sessionId, {
     bool includeDeleted = false,
+    bool includeImageData = true,
   }) async {
-    final key = (sessionId: sessionId, includeDeleted: includeDeleted);
+    final key = (
+      sessionId: sessionId,
+      includeDeleted: includeDeleted,
+      includeImageData: includeImageData,
+    );
     final cached = _messageLists[key];
     if (cached != null) {
       metrics.cacheHits += 1;
@@ -843,8 +852,11 @@ class CachedChatRepository implements ChatRepository, InvalidatableReadCache {
     final items = await delegate.listMessages(
       sessionId,
       includeDeleted: includeDeleted,
+      includeImageData: includeImageData,
     );
-    _messages.addEntries(items.map((item) => MapEntry(item.id, item)));
+    _messages.addEntries(
+      items.map((item) => MapEntry(item.id, item.withoutImage())),
+    );
     return _messageLists[key] = List.unmodifiable(items);
   }
 
@@ -854,6 +866,12 @@ class CachedChatRepository implements ChatRepository, InvalidatableReadCache {
     final persisted = await delegate.getMessage(id);
     _storeMessage(persisted);
     return persisted;
+  }
+
+  @override
+  Future<ChatImage?> getMessageImage(String id) {
+    metrics.delegateReads += 1;
+    return delegate.getMessageImage(id);
   }
 
   @override
@@ -891,6 +909,13 @@ class CachedChatRepository implements ChatRepository, InvalidatableReadCache {
     metrics.writes += 1;
     final current = _messages[id];
     if (current == null) return;
+    if (current.hasImage &&
+        _messageLists.keys.any(
+          (key) => key.sessionId == current.sessionId && key.includeImageData,
+        )) {
+      _storeMessage(await delegate.getMessage(id));
+      return;
+    }
     _storeMessage(
       current.copyWith(
         metadata: current.metadata.copyWith(
@@ -936,14 +961,16 @@ class CachedChatRepository implements ChatRepository, InvalidatableReadCache {
   }
 
   void _storeMessage(ChatMessage message) {
-    _messages[message.id] = message;
+    _messages[message.id] = message.withoutImage();
     for (final key
         in _messageLists.keys
             .where((key) => key.sessionId == message.sessionId)
             .toList()) {
       final items = [..._messageLists[key]!]
         ..removeWhere((item) => item.id == message.id);
-      if (key.includeDeleted || message.deletedAt == null) items.add(message);
+      if (key.includeDeleted || message.deletedAt == null) {
+        items.add(key.includeImageData ? message : message.withoutImage());
+      }
       items.sort(_compareMessages);
       _messageLists[key] = List.unmodifiable(items);
     }

@@ -822,7 +822,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             showBackButton: true,
             backFallbackLocation: AppRoutes.projectWorld(projectId),
             childHandlesPop: true,
-            child: NewWorldCardPage(projectId: projectId),
+            child: NewWorldCardPage(
+              projectId: projectId,
+              returnOnComplete: state.uri.queryParameters['return'] == '1',
+            ),
           );
         },
       ),

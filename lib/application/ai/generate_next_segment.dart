@@ -1,3 +1,4 @@
+import '../../domain/projects/novel_output_limits.dart';
 import '../../data/repositories/novel_output_limits_repository.dart';
 // ignore_for_file: prefer_initializing_formals
 
@@ -11,7 +12,7 @@ import '../segments/create_segment.dart';
 import 'ai_draft_update.dart';
 import 'ai_generation_service.dart';
 import 'ai_request_coordinator.dart';
-import 'clean_ai_text.dart';
+import 'novel_output_policy.dart';
 import 'novel_context_loader.dart';
 import 'novel_ai_response.dart';
 import 'novel_prompt_builder.dart';
@@ -83,6 +84,8 @@ class GenerateNextSegment {
     var streamEventCount = 0;
     var attempt = 0;
     String? pluginNotice;
+    NovelOutputLimits? outputLimitsForCancellation;
+    var structuredReply = false;
     try {
       final context = await _contextLoader.load(
         projectId: projectId,
@@ -104,7 +107,11 @@ class GenerateNextSegment {
         memory: context.memory,
         structured: binding != null,
       );
-      final outputLimits = await _outputLimits?.get(projectId);
+      final settings = await _outputLimits?.get(projectId);
+      final applyLength = mode != NovelGenerationMode.impersonate;
+      final outputLimits = applyLength ? settings : null;
+      outputLimitsForCancellation = outputLimits;
+      structuredReply = binding != null;
       final system = binding == null
           ? prompt.systemPrompt
           : _promptBuilder.structuredSystem(
@@ -113,7 +120,7 @@ class GenerateNextSegment {
             );
       final coreRequest = AiGenerationRequest(
         requestId: requestId,
-        systemPrompt: '$system${outputLimits?.promptSuffix ?? ''}',
+        systemPrompt: system,
         messages: [
           AiGenerationMessage(
             role: AiMessageRole.user,
@@ -121,7 +128,7 @@ class GenerateNextSegment {
           ),
         ],
         temperature: 0.75,
-        maxTokens: outputLimits?.isDefault == false ? null : 2400,
+        maxTokens: novelDefaultOutputTokens,
       );
       var request = coreRequest;
       final pipeline = _promptPipeline;
@@ -151,6 +158,17 @@ class GenerateNextSegment {
         providerConfigId: selected?.providerConfigId,
         model: selected?.model,
       );
+      final limits = binding == null && selected != null
+          ? await host?.modelLimits?.call(selected)
+          : null;
+      request = applyNovelOutputSettings(
+        request: request,
+        settings: settings,
+        model: selected,
+        applyLength: applyLength,
+        structured: binding != null,
+        modelOutputLimit: limits?.output,
+      );
       final run = binding == null
           ? null
           : await host!.prepare(
@@ -158,6 +176,8 @@ class GenerateNextSegment {
               context: context,
               core: request,
               model: selected,
+              projectTemperature: settings?.temperature,
+              projectOutputTokenLimit: novelOutputTokenCeiling(outputLimits),
               authorInput:
                   mode == NovelGenerationMode.impersonate ||
                       mode == NovelGenerationMode.empty
@@ -199,7 +219,13 @@ class GenerateNextSegment {
               lastYield = now;
               yield AiDraftUpdate(
                 requestId: requestId,
-                draft: draft.toString(),
+                draft: run == null
+                    ? enforceNovelOutputLength(
+                        NovelAiResponse.clean(draft.toString()),
+                        outputLimits,
+                        structured: false,
+                      ).text
+                    : draft.toString(),
                 status: AiDraftStatus.streaming,
                 pluginNotice: pluginNotice,
               );
@@ -229,7 +255,7 @@ class GenerateNextSegment {
       if (!_coordinator.isCurrent(channel, requestId)) {
         throw const AiProviderCancelledException();
       }
-      final content = NovelAiResponse.finalize(
+      final decoded = NovelAiResponse.finalize(
         requestId: requestId,
         stage: 'generate-next-segment',
         adapterText: run == null
@@ -241,6 +267,12 @@ class GenerateNextSegment {
         model: selected?.model,
         attempt: attempt,
       );
+      final output = enforceNovelOutputLength(
+        decoded,
+        outputLimits,
+        structured: run != null,
+      );
+      final content = output.text;
       if (run != null) {
         if (finishReason == AiFinishReason.cancelled) {
           throw const AiProviderCancelledException();
@@ -285,7 +317,7 @@ class GenerateNextSegment {
             run: run,
             segment: segment,
             raw: draft.toString(),
-            finish: finishReason,
+            finish: output.trimmed ? AiFinishReason.length : finishReason,
           );
         } catch (_) {
           pluginNotice = '正文已保存，插件展示或结束状态未能保存。';
@@ -302,6 +334,7 @@ class GenerateNextSegment {
         draft: content,
         status: AiDraftStatus.completed,
         savedSegment: segment,
+        outputNotice: output.notice,
         storyEnded: ended,
         pluginNotice: pluginNotice,
       );
@@ -323,7 +356,11 @@ class GenerateNextSegment {
     } on AiProviderCancelledException {
       yield AiDraftUpdate(
         requestId: requestId,
-        draft: cleanAiText(draft.toString()),
+        draft: enforceNovelOutputLength(
+          NovelAiResponse.clean(draft.toString()),
+          outputLimitsForCancellation,
+          structured: structuredReply,
+        ).text,
         status: AiDraftStatus.cancelled,
         pluginNotice: pluginNotice,
       );

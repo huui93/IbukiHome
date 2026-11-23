@@ -217,6 +217,8 @@ class NovelPluginHost {
     String? targetSegmentId,
     int? targetRevision,
     String? speakerId,
+    double? projectTemperature,
+    int? projectOutputTokenLimit,
     required DateTime now,
   }) async {
     final projectId = context.project.id;
@@ -295,21 +297,23 @@ class NovelPluginHost {
       model: model?.model ?? core.model ?? '',
       modelContextLimit: limits?.context,
       modelOutputLimit: limits?.output,
+      projectTemperature: projectTemperature,
+      projectOutputTokenLimit: projectOutputTokenLimit,
       allowStreaming: stream,
       historyText: (message) {
         final index = positions[message.id]!;
         final position = targetIndex < 0
             ? ''
             : index < targetIndex
-            ? ' · 目标之前'
-            : ' · 目标之后';
+            ? '目标之前'
+            : '目标之后';
         final body = NovelReplyMarkup.parse(message.content).body;
         final suffix =
             mode == NovelGenerationMode.continueReply &&
                 message.id == history.last.id
             ? binding.bundle.preset.templates['continuePostfix'] ?? ''
             : '';
-        return '【第 ${index + 1} 段$position】\n$body$suffix';
+        return position.isEmpty ? '$body$suffix' : '【$position】\n$body$suffix';
       },
     );
     final run = NovelPluginRun(

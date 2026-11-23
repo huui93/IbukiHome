@@ -118,7 +118,7 @@ void main() {
       await db.setVersion(16);
       await f.database.close();
       final reopened = await reopenFixture(f);
-      expect(await (await reopened.database.database).getVersion(), 21);
+      expect(await (await reopened.database.database).getVersion(), 22);
       expect((await reopened.projects.getProject('old')).systemPrompt, '既有提示词');
       expect(
         await SQLiteNovelPromptPresetRepository(reopened.database).list(),

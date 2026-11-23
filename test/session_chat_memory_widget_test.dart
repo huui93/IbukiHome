@@ -38,6 +38,36 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets('compression round setting stays in the selected session', (
+    tester,
+  ) async {
+    final c = await setup(tester);
+    c.read(appRouterProvider).go(AppRoutes.chatMemorySettings);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('memory-settings-a')));
+    await tester.pumpAndSettle();
+    final rounds = find.byKey(const Key('memory-compression-rounds-a'));
+    await Scrollable.ensureVisible(tester.element(rounds), alignment: .25);
+    await tester.pumpAndSettle();
+    expect(find.text('每 50 个完整轮次整理一次'), findsOneWidget);
+    await tester.tap(rounds);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('memory-compression-rounds-input')),
+      '20',
+    );
+    await tester.tap(find.byKey(const Key('save-memory-compression-rounds')));
+    await tester.pumpAndSettle();
+    expect(
+      (await c.read(chatMemoryServiceProvider).settings('a')).compressionRounds,
+      20,
+    );
+    expect(
+      (await c.read(chatMemoryServiceProvider).settings('b')).compressionRounds,
+      50,
+    );
+  });
+
   testWidgets(
     'manual memory, local search and editable overview fit a small screen and keyboard',
     (tester) async {

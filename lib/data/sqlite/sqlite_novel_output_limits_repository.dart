@@ -24,6 +24,7 @@ class SQLiteNovelOutputLimitsRepository implements NovelOutputLimitsRepository {
           projectId: id,
           minimum: rows.single['minimum_characters'] as int?,
           maximum: rows.single['maximum_characters'] as int?,
+          temperature: (rows.single['temperature'] as num?)?.toDouble(),
           revision: rows.single['revision']! as int,
         );
   @override
@@ -59,7 +60,9 @@ class SQLiteNovelOutputLimitsRepository implements NovelOutputLimitsRepository {
       if (old.revision != expectedRevision) {
         throw const DataConflictException('设置已改变，请重新打开后修改。');
       }
-      if (old.minimum == value.minimum && old.maximum == value.maximum) {
+      if (old.minimum == value.minimum &&
+          old.maximum == value.maximum &&
+          old.temperature == value.temperature) {
         return old;
       }
       if (value.isDefault) {
@@ -74,6 +77,7 @@ class SQLiteNovelOutputLimitsRepository implements NovelOutputLimitsRepository {
       final data = {
         'minimum_characters': value.minimum,
         'maximum_characters': value.maximum,
+        'temperature': value.temperature,
         'revision': revision,
         'updated_at': now.toUtc().toIso8601String(),
       };
@@ -95,6 +99,7 @@ class SQLiteNovelOutputLimitsRepository implements NovelOutputLimitsRepository {
         projectId: value.projectId,
         minimum: value.minimum,
         maximum: value.maximum,
+        temperature: value.temperature,
         revision: revision,
       );
     });

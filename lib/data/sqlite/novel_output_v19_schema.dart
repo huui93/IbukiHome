@@ -16,3 +16,12 @@ Future<void> createNovelOutputV19Schema(DatabaseExecutor db) async {
     await db.execute(statement);
   }
 }
+
+Future<void> ensureNovelOutputTemperature(DatabaseExecutor db) async {
+  final columns = await db.rawQuery('PRAGMA table_info(novel_output_settings)');
+  if (columns.any((column) => column['name'] == 'temperature')) return;
+  await db.execute(
+    'ALTER TABLE novel_output_settings ADD COLUMN temperature REAL '
+    'CHECK (temperature IS NULL OR temperature BETWEEN 0 AND 2)',
+  );
+}

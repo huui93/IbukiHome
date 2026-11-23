@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/localization/app_localizations.dart';
 import '../../../app/routing/app_routes.dart';
 import '../../../app/theme/app_tokens.dart';
 import '../../../app/theme/bubble_theme.dart';
@@ -140,18 +141,18 @@ class _SimplePrimaryScaffoldState extends State<SimplePrimaryScaffold> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           key: const Key('exit-app-dialog'),
-          title: const Text('离开伊吹之家？'),
-          content: const Text('确定要退出应用吗？'),
+          title: Text(dialogContext.tr('离开伊吹之家？')),
+          content: Text(dialogContext.tr('确定要退出应用吗？')),
           actions: [
             TextButton(
               key: const Key('cancel-exit-app'),
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('取消'),
+              child: Text(dialogContext.tr('取消')),
             ),
             FilledButton(
               key: const Key('confirm-exit-app'),
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('退出'),
+              child: Text(dialogContext.tr('退出')),
             ),
           ],
         ),
@@ -379,12 +380,15 @@ class _PrimaryNavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final localizedLabel = context.tr(label);
     return Semantics(
       container: true,
       enabled: true,
       selected: selected,
       button: true,
-      label: prominent ? '$label，主系统' : label,
+      label: prominent
+          ? context.tr('{label}，主系统', {'label': localizedLabel})
+          : localizedLabel,
       child: InkWell(
         key: itemKey,
         borderRadius: BorderRadius.circular(AppTokens.bubbleSmallRadius),
@@ -431,7 +435,7 @@ class _PrimaryNavItem extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  label,
+                  localizedLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(

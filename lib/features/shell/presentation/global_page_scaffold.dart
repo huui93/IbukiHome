@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/bubble_theme.dart';
 import '../../../app/widgets/bubble_background.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class GlobalPageScaffold extends StatelessWidget {
   const GlobalPageScaffold({
@@ -33,7 +34,7 @@ class GlobalPageScaffold extends StatelessWidget {
         appBar: AppBar(
           leading: IconButton(
             key: const Key('global-back-button'),
-            tooltip: '返回',
+            tooltip: context.tr("返回"),
             icon: const Icon(Icons.arrow_back_rounded),
             onPressed: () => _goBack(context),
           ),
@@ -41,9 +42,13 @@ class GlobalPageScaffold extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
               Text(
-                subtitle,
+                context.tr(title),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                context.tr(subtitle),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(

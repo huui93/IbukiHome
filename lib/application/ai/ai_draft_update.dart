@@ -23,6 +23,7 @@ class AiDraftUpdate {
     this.savedMessage,
     this.finishReason,
     this.pluginNotice,
+    this.outputNotice,
     this.storyEnded = false,
   });
 
@@ -33,5 +34,6 @@ class AiDraftUpdate {
   final ChatMessage? savedMessage;
   final AiFinishReason? finishReason;
   final String? pluginNotice;
+  final String? outputNotice;
   final bool storyEnded;
 }

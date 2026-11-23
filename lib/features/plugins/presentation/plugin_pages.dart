@@ -13,6 +13,7 @@ import '../../../application/providers/repository_providers.dart';
 import '../../../core/errors/plugin_exceptions.dart';
 import '../../../domain/plugins/installed_plugin.dart';
 import '../../../domain/plugins/plugin_creative_manifest.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class PluginManagementPage extends ConsumerWidget {
   const PluginManagementPage({super.key});
@@ -411,7 +412,7 @@ class _PluginCreativeRuntimeSectionState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
+              child: Text(context.tr("取消")),
             ),
             FilledButton(
               key: const Key('replace-prompt-plugin'),
@@ -733,7 +734,7 @@ class _PluginLoadError extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('重试'),
+              label: Text(context.tr("重试")),
             ),
           ],
         ),
@@ -787,7 +788,7 @@ Future<void> _pickAndInstall(BuildContext context, WidgetRef ref) async {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(context.tr("取消")),
           ),
           FilledButton(
             key: const Key('confirm-install-plugin-button'),
@@ -854,7 +855,7 @@ Future<void> _confirmUninstall(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('取消'),
+          child: Text(context.tr("取消")),
         ),
         FilledButton(
           key: const Key('confirm-uninstall-plugin-button'),

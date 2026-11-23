@@ -8,6 +8,7 @@ class ChatMemoryState {
     this.savedEnabled = true,
     bool historyEnabled = true,
     this.autoSave = true,
+    this.compressionRounds = defaultCompressionRounds,
     this.paused = false,
     this.overview = '',
     this.overviewEdited = false,
@@ -22,6 +23,9 @@ class ChatMemoryState {
   final bool savedEnabled;
   final bool historyEnabled;
   final bool autoSave;
+  final int compressionRounds;
+  static const defaultCompressionRounds = 50;
+  static const maximumCompressionRounds = 1000;
   final bool paused;
   final String overview;
   final bool overviewEdited;
@@ -37,6 +41,7 @@ class ChatMemoryState {
     bool? savedEnabled,
     bool? historyEnabled,
     bool? autoSave,
+    int? compressionRounds,
     bool? paused,
     String? overview,
     bool? overviewEdited,
@@ -52,6 +57,7 @@ class ChatMemoryState {
       savedEnabled: saved,
       historyEnabled: saved && (historyEnabled ?? this.historyEnabled),
       autoSave: autoSave ?? this.autoSave,
+      compressionRounds: compressionRounds ?? this.compressionRounds,
       paused: paused ?? this.paused,
       overview: overview ?? this.overview,
       overviewEdited: overviewEdited ?? this.overviewEdited,
@@ -68,6 +74,7 @@ class ChatMemoryState {
     'savedEnabled': savedEnabled,
     'historyEnabled': historyEnabled,
     'autoSave': autoSave,
+    'compressionRounds': compressionRounds,
     'paused': paused,
     'overview': overview,
     'overviewEdited': overviewEdited,
@@ -97,6 +104,10 @@ class ChatMemoryState {
       name,
       defaultValue: true,
     );
+    final rounds = data['compressionRounds'] ?? defaultCompressionRounds;
+    if (rounds is! int || rounds < 1 || rounds > maximumCompressionRounds) {
+      throw const FormatException('Invalid ChatMemoryState.compressionRounds');
+    }
     return ChatMemoryState(
       metadata: metadata,
       sessionId: sessionId,
@@ -105,6 +116,7 @@ class ChatMemoryState {
           saved &&
           readOptionalBool(data, 'historyEnabled', name, defaultValue: true),
       autoSave: readOptionalBool(data, 'autoSave', name, defaultValue: true),
+      compressionRounds: rounds,
       paused: readOptionalBool(data, 'paused', name),
       overview: readOptionalString(data, 'overview', name),
       overviewEdited: readOptionalBool(data, 'overviewEdited', name),

@@ -13,6 +13,7 @@ import '../../workspaces/presentation/novel_workspace_home_page.dart';
 import 'simple_primary_scaffold.dart';
 import '../../../app/navigation/novel_workspace_section.dart';
 import '../../workspaces/presentation/novel_section_tabs.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class NovelPrimaryPage extends ConsumerWidget {
   const NovelPrimaryPage({
@@ -45,14 +46,14 @@ class NovelPrimaryPage extends ConsumerWidget {
       if (editingProjectId != null)
         IconButton(
           key: const Key('novel-back-to-creation-list'),
-          tooltip: '返回创作列表',
+          tooltip: context.tr("返回创作列表"),
           onPressed: () => context.go(AppRoutes.novelCreation),
           icon: const Icon(Icons.arrow_back_rounded),
         ),
       if (editingProjectId == null && section != NovelWorkspaceSection.settings)
         IconButton(
           key: const Key('novel-import-txt'),
-          tooltip: '导入 TXT 小说',
+          tooltip: context.tr("导入 TXT 小说"),
           onPressed: () => context.push(AppRoutes.importTxtNovel),
           icon: const Icon(Icons.file_upload_outlined),
         ),
@@ -98,7 +99,7 @@ class ChatPrimaryPage extends ConsumerWidget {
       actions: [
         IconButton(
           key: const Key('chat-add-menu'),
-          tooltip: '添加或修改聊天对象',
+          tooltip: context.tr("添加或修改聊天对象"),
           onPressed: () => showChatCreationMenu(context),
           icon: const Icon(Icons.add_rounded),
         ),

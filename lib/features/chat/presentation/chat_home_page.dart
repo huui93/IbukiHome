@@ -9,6 +9,7 @@ import '../../../domain/chat/chat_session.dart';
 import '../../mascot/application/mascot_controller.dart';
 import '../../mascot/domain/mascot_action.dart';
 import 'simple_chat_pages.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class ChatHomePage extends StatelessWidget {
   const ChatHomePage({super.key});
@@ -37,7 +38,7 @@ class DeletedChatSessionsPage extends ConsumerWidget {
           padding: const EdgeInsets.all(AppTokens.spacingM),
           children: [
             Text(
-              '已删除会话',
+              context.tr("已删除会话"),
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
@@ -92,7 +93,7 @@ class _DeletedChatSessionTile extends ConsumerWidget {
         trailing: FilledButton.tonal(
           key: Key('restore-chat-session-${session.id}'),
           onPressed: () => _restoreSession(context, ref, session.id),
-          child: const Text('恢复'),
+          child: Text(context.tr("恢复")),
         ),
       ),
     );

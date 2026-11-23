@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/localization/app_localizations.dart';
 import '../../../app/routing/app_routes.dart';
 import '../../../app/theme/bubble_theme.dart';
 import '../../../app/widgets/bubble_background.dart';
@@ -51,10 +52,14 @@ class ShellScaffold extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    context.tr(title),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   if (subtitle.isNotEmpty)
                     Text(
-                      subtitle,
+                      context.tr(subtitle),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(

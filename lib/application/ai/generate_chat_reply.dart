@@ -34,6 +34,7 @@ class GenerateChatReply {
     required AiRequestCoordinator coordinator,
     ChatMemoryService? memoryService,
     AiModelResolver? modelResolver,
+    Future<({int context, int output})?> Function(ResolvedAiModel)? modelLimits,
     IbukiPromptPipeline? promptPipeline,
     ChatControlsRepository? controls,
     ChatUsageTracker? usageTracker,
@@ -45,6 +46,7 @@ class GenerateChatReply {
        _coordinator = coordinator,
        _memoryService = memoryService,
        _modelResolver = modelResolver,
+       _modelLimits = modelLimits,
        _promptPipeline = promptPipeline,
        _controls = controls,
        _usageTracker = usageTracker,
@@ -60,6 +62,8 @@ class GenerateChatReply {
   final AiRequestCoordinator _coordinator;
   final ChatMemoryService? _memoryService;
   final AiModelResolver? _modelResolver;
+  final Future<({int context, int output})?> Function(ResolvedAiModel)?
+  _modelLimits;
   final IbukiPromptPipeline? _promptPipeline;
   final ChatControlsRepository? _controls;
   final ChatUsageTracker? _usageTracker;
@@ -73,6 +77,7 @@ class GenerateChatReply {
     required DateTime nowUtc,
     String? continueMessageId,
     String? regenerateMessageId,
+    bool freshUserMessage = false,
   }) async* {
     final cancellation = _coordinator.begin(channel, requestId);
     try {
@@ -88,12 +93,15 @@ class GenerateChatReply {
       if (persona.deletedAt != null) {
         throw const DataConflictException('已删除聊天角色不能生成回复。');
       }
-      var initialMessages = await _chats.listMessages(sessionId);
+      var initialMessages = await _chats.listMessages(
+        sessionId,
+        includeImageData: false,
+      );
       _requireUserMessage(initialMessages, userMessageId);
       final userIndex = initialMessages.indexWhere(
         (m) => m.id == userMessageId,
       );
-      var initialUser = initialMessages[userIndex];
+      var initialUser = await _chats.getMessage(userMessageId);
       if (continueMessageId != null && regenerateMessageId != null) {
         throw const DataConflictException('不能同时续写和重新生成。');
       }
@@ -107,6 +115,10 @@ class GenerateChatReply {
           initialMessages.last.id != userMessageId) {
         throw const DataConflictException('这条消息已有后续内容，请对最后一条回复操作。');
       }
+      await _memoryService?.checkReplySource(
+        initialUser,
+        fresh: freshUserMessage,
+      );
       if (initialUser.image?.needsRecognition == true) {
         final recognizer = _imageRecognizer;
         if (recognizer == null) {
@@ -118,7 +130,21 @@ class GenerateChatReply {
           requestId: requestId,
           cancellation: cancellation,
         );
-        initialMessages = await _chats.listMessages(sessionId);
+        initialMessages = await _chats.listMessages(
+          sessionId,
+          includeImageData: false,
+        );
+      }
+      if (initialUser.image?.description != null) {
+        try {
+          await _memoryService?.rememberImageObservation(
+            personaId: personaId,
+            message: initialUser,
+          );
+        } catch (_) {
+          // The recognition text is already attached to the persisted message.
+          // A derived note must not prevent the user from getting a reply.
+        }
       }
       final alreadyAnswered = initialMessages
           .skip(userIndex + 1)
@@ -152,10 +178,16 @@ class GenerateChatReply {
       while (true) {
         requestAttempt += 1;
         final selected = await _modelResolver?.resolveForChatSession(sessionId);
+        final limits = selected == null
+            ? null
+            : await _modelLimits?.call(selected);
         final attemptRequestId = requestAttempt == 1
             ? requestId
             : '$requestId-attempt-$requestAttempt';
-        final activeMessages = await _chats.listMessages(sessionId);
+        final activeMessages = await _chats.listMessages(
+          sessionId,
+          includeImageData: false,
+        );
         final messages = regenerationTarget != null && targetMessage == null
             ? activeMessages
                   .where((m) => m.id != regenerationTarget.id)
@@ -167,12 +199,21 @@ class GenerateChatReply {
               personaId: personaId,
               sessionId: sessionId,
               query: messages.where((m) => m.id == userMessageId).first.content,
+              freshMessageId: freshUserMessage ? userMessageId : null,
+              characterBudget: ((limits?.context ?? 16384) ~/ 4).clamp(0, 6000),
               excludedMessageIds:
                   regenerationTarget != null && targetMessage == null
                   ? {regenerationTarget.id}
                   : const {},
             ) ??
             const ChatMemoryContext();
+        if (memoryContext.excludedRawMessageIds.contains(userMessageId) ||
+            (targetMessage != null &&
+                memoryContext.excludedRawMessageIds.contains(
+                  targetMessage.id,
+                ))) {
+          throw const AiProviderValidationException('这条消息已停止引用。请发送新消息来继续。');
+        }
         var request = _promptBuilder.build(
           requestId: attemptRequestId,
           persona: persona,
@@ -225,6 +266,12 @@ class GenerateChatReply {
           providerConfigId: selected?.providerConfigId,
           model: selected?.model,
           reasoning: reasoning,
+        );
+        request = _promptBuilder.fitToModel(
+          request,
+          presetMessageCount: persona.presetMessages.length * 2,
+          continuation: targetMessage != null,
+          limits: limits,
         );
         final diagnostics = AiStreamDiagnostics(
           generationTraceId: attemptRequestId,
@@ -589,7 +636,10 @@ class GenerateChatReply {
     if (current.deletedAt != null || current.personaId != personaId) {
       throw const DataConflictException('会话角色已经变化，旧回复已丢弃。');
     }
-    _requireUserMessage(await _chats.listMessages(sessionId), userMessageId);
+    _requireUserMessage(
+      await _chats.listMessages(sessionId, includeImageData: false),
+      userMessageId,
+    );
   }
 
   Future<ChatMessage> _saveAssistant({

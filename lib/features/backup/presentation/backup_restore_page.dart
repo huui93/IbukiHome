@@ -9,6 +9,7 @@ import '../../../app/theme/app_tokens.dart';
 import '../../../app/widgets/ibuki_glass_surface.dart';
 import '../../../application/backup/backup_providers.dart';
 import '../../../domain/backup/backup_models.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class BackupRestorePage extends ConsumerStatefulWidget {
   const BackupRestorePage({super.key});
@@ -274,7 +275,7 @@ class _BackupPreviewDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('取消'),
+          child: Text(context.tr("取消")),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
@@ -332,7 +333,7 @@ class _RestorePreviewDialogState extends State<_RestorePreviewDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
+          child: Text(context.tr("取消")),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, _mode),
@@ -401,7 +402,10 @@ class _ProgressOverlay extends StatelessWidget {
                     ],
                     if (onCancel != null) ...[
                       const SizedBox(height: 12),
-                      TextButton(onPressed: onCancel, child: const Text('取消')),
+                      TextButton(
+                        onPressed: onCancel,
+                        child: Text(context.tr("取消")),
+                      ),
                     ],
                   ],
                 ),

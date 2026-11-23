@@ -23,6 +23,7 @@ import 'package:ibukihome/domain/ai/ai_default_selection.dart';
 import 'package:ibukihome/domain/ai/ai_generation.dart';
 import 'package:ibukihome/domain/chat/chat_image.dart';
 import 'package:ibukihome/domain/chat/chat_message_role.dart';
+import 'package:ibukihome/domain/chat/chat_memory_state.dart';
 import 'package:ibukihome/domain/chat/chat_persona.dart';
 import 'package:ibukihome/domain/chat/chat_session.dart';
 import 'package:ibukihome/domain/common/entity_metadata.dart';
@@ -36,6 +37,131 @@ EntityMetadata meta(String id) =>
     EntityMetadata(id: id, createdAt: now, updatedAt: now, revision: 1);
 
 void main() {
+  test(
+    'stopping reference removes an image observation from recall and raw requests',
+    () async {
+      final f = ImageFixture();
+      await f.init();
+      await f.reply();
+      final saved = (await f.memory.search(
+        'a',
+        'ORBIT-73',
+      )).singleWhere((source) => source.kind == ChatMemorySourceKind.saved);
+      await f.memory.forget('a', saved);
+      await SendChatMessage(f.chats)(
+        sessionId: 'a',
+        messageId: 'followup',
+        role: ChatMessageRole.user,
+        content: '现在聊聊窗外的天气。',
+        nowUtc: now.add(const Duration(seconds: 4)),
+      );
+      await f
+          .generator(
+            sessionId: 'a',
+            userMessageId: 'followup',
+            requestId: 'after-forget',
+            assistantMessageId: 'followup-ai',
+            nowUtc: now.add(const Duration(seconds: 5)),
+          )
+          .drain<void>();
+      final outgoing = f.runtime.requests.singleWhere(
+        (r) => r.requestId == 'after-forget',
+      );
+      expect(outgoing.systemPrompt, isNot(contains('ORBIT-73')));
+      expect(
+        outgoing.messages.any((m) => m.content.contains('ORBIT-73')),
+        isFalse,
+      );
+      expect(
+        (await f.chats.getMessage('u')).image!.description,
+        contains('ORBIT-73'),
+      );
+    },
+  );
+
+  test(
+    'pausing sends no further extraction and cancels the running summary',
+    () async {
+      final f = ImageFixture();
+      await f.init();
+      await f.reply();
+      await f.memory.organize('a');
+      final runtime = _PausedRuntime();
+      final service = ChatMemoryService(
+        memories: f.memories,
+        chats: f.chats,
+        personas: f.personas,
+        runtime: runtime,
+        ids: EntityIdGenerator(),
+      );
+      final work = service.organize('a', force: true);
+      await runtime.summaryStarted.future;
+      await service.updateSettings('a', paused: true);
+      expect(await service.settings('a').then((s) => s.paused), isTrue);
+      runtime.releaseSummary.complete();
+      expect(await work, ChatMemoryOrganizationResult.changed);
+      expect(
+        runtime.requests.where((r) => r.requestId.contains('extract')),
+        isEmpty,
+      );
+      expect(runtime.summaryCancellation!.isCancelled, isTrue);
+      expect(await f.memories.listSummaries('a'), isEmpty);
+    },
+  );
+
+  test(
+    'uncompressed history is available to vague follow-ups beyond 30 raw messages',
+    () async {
+      final f = ImageFixture();
+      await f.init();
+      await f.reply();
+      for (var i = 0; i < 16; i++) {
+        await SendChatMessage(f.chats)(
+          sessionId: 'a',
+          messageId: 'user-$i',
+          role: ChatMessageRole.user,
+          content: i == 0 ? '备用代码 ZEBRACRANE' : '闲聊日常',
+          nowUtc: now.add(Duration(seconds: 2 * i + 4)),
+        );
+        await SendChatMessage(f.chats)(
+          sessionId: 'a',
+          messageId: 'assistant-$i',
+          role: ChatMessageRole.assistant,
+          content: '我知道了',
+          finishReason: AiFinishReason.stop,
+          nowUtc: now.add(Duration(seconds: 2 * i + 5)),
+        );
+      }
+      expect(
+        await f.memory.organize('a'),
+        ChatMemoryOrganizationResult.insufficient,
+      );
+      await SendChatMessage(f.chats)(
+        sessionId: 'a',
+        messageId: 'ask',
+        role: ChatMessageRole.user,
+        content: '继续。',
+        nowUtc: now.add(const Duration(seconds: 40)),
+      );
+      await f
+          .generator(
+            sessionId: 'a',
+            userMessageId: 'ask',
+            requestId: 'gap',
+            assistantMessageId: 'gap-ai',
+            nowUtc: now.add(const Duration(seconds: 41)),
+          )
+          .drain<void>();
+      final outgoing = f.runtime.requests.singleWhere(
+        (r) => r.requestId == 'gap',
+      );
+      expect(outgoing.systemPrompt, isNot(contains('ZEBRACRANE')));
+      expect(
+        outgoing.messages.any((m) => m.content.contains('ZEBRACRANE')),
+        isTrue,
+      );
+    },
+  );
   test(
     'image-only messages persist, caption routes to current chat model once and regeneration reuses it',
     () async {
@@ -130,6 +256,48 @@ void main() {
     },
   );
   test(
+    'the first recognized image is remembered even before a text reply succeeds',
+    () async {
+      final f = ImageFixture();
+      await f.init();
+      f.runtime.failReply = true;
+      await expectLater(
+        f.reply(),
+        throwsA(isA<AiProviderModelUnavailableException>()),
+      );
+      final recognized = await f.chats.getMessage('u');
+      final saved = (await f.memories.listEntriesForSession('a')).single;
+      expect(saved.sourceStartMessageId, 'u');
+      expect(saved.content, contains('ORBIT-73'));
+      expect(await f.memories.listEntriesForSession('b'), isEmpty);
+      expect(await f.memories.listSummaries('a'), isEmpty);
+      expect(f.runtime.requests, hasLength(2));
+
+      await f.memory.rememberImageObservation(
+        personaId: 'p',
+        message: recognized,
+      );
+      expect(await f.memories.listEntriesForSession('a'), hasLength(1));
+    },
+  );
+
+  test(
+    'image recognition still stores its record while automatic memory is off',
+    () async {
+      final f = ImageFixture();
+      await f.init();
+      await f.memory.updateSettings('a', autoSave: false);
+      await f.reply();
+      expect(
+        (await f.chats.getMessage('u')).image!.description,
+        contains('ORBIT-73'),
+      );
+      expect(await f.memories.listEntriesForSession('a'), isEmpty);
+      expect(await f.memory.search('a', 'ORBIT-73'), isNotEmpty);
+    },
+  );
+
+  test(
     'image observations are searchable and organized locally only within the originating session',
     () async {
       final f = ImageFixture();
@@ -139,8 +307,12 @@ void main() {
       expect(await f.memory.search('b', 'ORBIT-73'), isEmpty);
       await f.memory.organize('a', force: true);
       final entries = await f.memories.listEntriesForSession('a');
-      expect(entries.single.content, contains('ORBIT-73'));
-      expect(entries.single.sessionId, 'a');
+      final imageNote = entries.singleWhere(
+        (entry) => entry.topic == 'image-observation',
+      );
+      expect(imageNote.content, contains('ORBIT-73'));
+      expect(imageNote.sessionId, 'a');
+      expect(imageNote.sourceStartMessageId, 'u');
       expect(await f.memories.listEntriesForSession('b'), isEmpty);
       expect(
         f.runtime.requests
@@ -236,6 +408,7 @@ class ImageFixture {
       runtime: runtime,
       coordinator: AiRequestCoordinator(),
       modelResolver: resolver,
+      memoryService: memory,
       imageRecognizer: RecognizeChatImage(
         chats: chats,
         runtime: runtime,
@@ -299,6 +472,7 @@ class ImageFixture {
 class ImageRuntime implements AiDetailedGenerationRuntime {
   final requests = <AiGenerationRequest>[];
   bool failVision = false;
+  bool failReply = false;
   bool cancelVision = false;
   AiFinishReason visionFinish = AiFinishReason.stop;
   Future<void> Function()? beforeVisionEnd;
@@ -338,6 +512,7 @@ class ImageRuntime implements AiDetailedGenerationRuntime {
       await beforeVisionEnd?.call();
       yield AiStreamEvent.finished(visionFinish);
     } else {
+      if (failReply) throw const AiProviderModelUnavailableException();
       yield const AiStreamEvent.content('我看到蓝色杯子。');
       yield const AiStreamEvent.finished(AiFinishReason.stop);
     }
@@ -362,5 +537,24 @@ class ImageRuntime implements AiDetailedGenerationRuntime {
     return request.requestId.contains('extract')
         ? '[{"category":"sharedEvent","content":"用户发送的图片中，模型观察到蓝色杯子，标签为 ORBIT-73。"}]'
         : '用户发送一张图片，模型观察到蓝色杯子和 ORBIT-73 标签。';
+  }
+}
+
+class _PausedRuntime extends ImageRuntime {
+  final summaryStarted = Completer<void>();
+  final releaseSummary = Completer<void>();
+  AiRequestCancellation? summaryCancellation;
+
+  @override
+  Future<String> generate(
+    AiGenerationRequest request, {
+    AiRequestCancellation? cancellation,
+  }) async {
+    if (request.requestId.contains('summary')) {
+      summaryCancellation = cancellation;
+      summaryStarted.complete();
+      await releaseSummary.future;
+    }
+    return super.generate(request, cancellation: cancellation);
   }
 }

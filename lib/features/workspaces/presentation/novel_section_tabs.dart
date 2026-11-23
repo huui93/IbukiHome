@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../app/localization/app_localizations.dart';
 import '../../../app/navigation/novel_workspace_section.dart';
 import '../../../app/theme/ibuki_motion.dart';
 
@@ -22,7 +24,9 @@ class NovelSectionTabs extends StatelessWidget {
             button: true,
             excludeSemantics: true,
             onTap: () => onSelected(section),
-            label: '小说${section.label}',
+            label: context.tr('小说{section}', {
+              'section': context.tr(section.label),
+            }),
             child: TextButton(
               key: Key('novel-tab-${section.name}'),
               style: TextButton.styleFrom(
@@ -50,7 +54,7 @@ class NovelSectionTabs extends StatelessWidget {
                           ? Theme.of(context).colorScheme.primary
                           : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    child: Text(section.label, maxLines: 1),
+                    child: Text(context.tr(section.label), maxLines: 1),
                   ),
                   const SizedBox(height: 3),
                   AnimatedContainer(

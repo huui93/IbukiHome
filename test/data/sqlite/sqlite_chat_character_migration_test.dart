@@ -15,7 +15,7 @@ void main() {
 
   group('chat character schema compatibility', () {
     test('declares schema version 6', () {
-      expect(SqliteSchema.version, 21);
+      expect(SqliteSchema.version, 22);
     });
 
     test('fresh database includes nullable character_id', () async {

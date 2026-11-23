@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/localization/app_localizations.dart';
 import '../../../app/navigation/app_workspace_mode.dart';
 import '../../../app/routing/app_routes.dart';
 import '../../../app/theme/app_tokens.dart';
@@ -316,7 +317,7 @@ class _NewCharacterPageState extends ConsumerState<NewCharacterPage> {
       ref
           .read(mascotControllerProvider.notifier)
           .perform(MascotAction.celebrate);
-      if (widget.returnOnComplete) {
+      if (widget.returnOnComplete && context.canPop()) {
         context.pop(character);
         return;
       }
@@ -529,52 +530,59 @@ class CharacterDetailPage extends ConsumerWidget {
                         ),
                         SelectableText(character.originalIdea),
                       ],
-                      Wrap(
-                        spacing: AppTokens.spacingM,
+                      Row(
                         children: [
-                          Text('revision ${character.revision}'),
-                          Text(
-                            '更新 ${formatLocalDateTime(character.updatedAt)}',
+                          Expanded(
+                            child: FilledButton.icon(
+                              key: const Key('edit-character-button'),
+                              onPressed: () => context.push(
+                                _workspacePath(
+                                  AppRoutes.editCharacter(
+                                    projectId,
+                                    character.id,
+                                  ),
+                                  workspaceMode,
+                                ),
+                              ),
+                              icon: const Icon(Icons.edit_outlined),
+                              label: Text(context.tr('编辑')),
+                            ),
+                          ),
+                          const SizedBox(width: AppTokens.spacingS),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              key: const Key('delete-character-button'),
+                              onPressed: () => _delete(context, ref, character),
+                              icon: const Icon(Icons.delete_outline),
+                              label: Text(context.tr('删除')),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: AppTokens.spacingM),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppTokens.spacingM),
-                          child: SelectableText(
-                            character.content.trim().isEmpty
-                                ? '还没有填写角色内容。'
-                                : character.content,
-                            key: const Key('character-detail-content'),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppTokens.spacingM),
-                      Wrap(
-                        spacing: AppTokens.spacingS,
-                        runSpacing: AppTokens.spacingS,
+                      const SizedBox(height: AppTokens.spacingS),
+                      Row(
                         children: [
-                          FilledButton.icon(
-                            key: const Key('edit-character-button'),
-                            onPressed: () => context.push(
-                              _workspacePath(
-                                AppRoutes.editCharacter(
-                                  projectId,
-                                  character.id,
-                                ),
-                                workspaceMode,
-                              ),
+                          Expanded(
+                            child: FilledButton.tonalIcon(
+                              key: const Key('confirm-character-settings'),
+                              onPressed: () {
+                                if (context.canPop()) {
+                                  context.pop(character);
+                                } else {
+                                  context.go(
+                                    _workspacePath(
+                                      AppRoutes.projectCharacters(projectId),
+                                      workspaceMode,
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.check_rounded),
+                              label: Text(context.tr('确定角色设置')),
                             ),
-                            icon: const Icon(Icons.edit_outlined),
-                            label: const Text('编辑'),
                           ),
-                          OutlinedButton.icon(
-                            key: const Key('delete-character-button'),
-                            onPressed: () => _delete(context, ref, character),
-                            icon: const Icon(Icons.delete_outline),
-                            label: const Text('删除'),
-                          ),
+                          const SizedBox(width: AppTokens.spacingS),
+                          const Spacer(),
                         ],
                       ),
                     ],

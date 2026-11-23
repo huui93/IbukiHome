@@ -9,12 +9,30 @@ class ChatImage {
     required this.userText,
     this.description,
   }) {
+    _validateHeader();
+    _bytes;
+  }
+
+  ChatImage._stored({
+    required this.base64Data,
+    required this.mimeType,
+    required this.userText,
+    this.description,
+  }) {
+    _validateHeader();
+  }
+
+  void _validateHeader() {
     if (base64Data.length > (maxBytes + 2) ~/ 3 * 4 ||
-        !const {'image/jpeg', 'image/png', 'image/webp'}.contains(mimeType)) {
+        !const {'image/jpeg', 'image/png', 'image/webp'}.contains(mimeType) ||
+        (description != null &&
+            (description!.trim().isEmpty || description!.length > 16000))) {
       throw const FormatException('图片格式或大小无效。');
     }
+  }
+
+  Uint8List _validateBytes() {
     final data = base64Decode(base64Data);
-    _bytes = data.asUnmodifiableView();
     final valid = switch (mimeType) {
       'image/jpeg' =>
         data.length >= 3 && data[0] == 255 && data[1] == 216 && data[2] == 255,
@@ -26,12 +44,10 @@ class ChatImage {
             ascii.decode(data.sublist(8, 12), allowInvalid: true) == 'WEBP',
       _ => false,
     };
-    if (!valid ||
-        data.length > maxBytes ||
-        (description != null &&
-            (description!.trim().isEmpty || description!.length > 16000))) {
+    if (!valid || data.length > maxBytes) {
       throw const FormatException('图片数据或识别结果无效。');
     }
+    return data.asUnmodifiableView();
   }
 
   static const maxBytes = 2 * 1024 * 1024;
@@ -39,7 +55,7 @@ class ChatImage {
   final String mimeType;
   final String userText;
   final String? description;
-  late final Uint8List _bytes;
+  late final Uint8List _bytes = _validateBytes();
   Uint8List get bytes => _bytes;
   bool get needsRecognition => description == null;
 
@@ -62,14 +78,20 @@ class ChatImage {
     'userText': userText,
     'description': description,
   };
-  factory ChatImage.fromJson(Map<String, dynamic> json) {
+
+  /// Defer decoding only for rows already validated when written to local storage.
+  factory ChatImage.fromJson(
+    Map<String, dynamic> json, {
+    bool deferDecoding = false,
+  }) {
     if (json['data'] is! String ||
         json['mime'] is! String ||
         json['userText'] is! String ||
         (json['description'] != null && json['description'] is! String)) {
       throw const FormatException('图片记录无效。');
     }
-    return ChatImage(
+    final create = deferDecoding ? ChatImage._stored : ChatImage.new;
+    return create(
       base64Data: json['data'] as String,
       mimeType: json['mime'] as String,
       userText: json['userText'] as String,

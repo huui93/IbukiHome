@@ -1,3 +1,4 @@
+import '../../domain/chat/chat_image.dart';
 import '../../domain/chat/chat_message.dart';
 import '../../domain/chat/chat_session.dart';
 
@@ -17,9 +18,11 @@ abstract class ChatRepository {
 
   Future<void> restoreSession(String id, DateTime updatedAt);
 
+  /// Use a text projection for prompts and memory instead of reading image payloads.
   Future<List<ChatMessage>> listMessages(
     String sessionId, {
     bool includeDeleted = false,
+    bool includeImageData = true,
   });
 
   Future<void> appendMessage(ChatMessage message);
@@ -32,6 +35,8 @@ abstract class ChatRepository {
   );
 
   Future<ChatMessage> getMessage(String id);
+
+  Future<ChatImage?> getMessageImage(String id);
 
   Future<void> softDeleteMessage(String id, DateTime deletedAt);
 

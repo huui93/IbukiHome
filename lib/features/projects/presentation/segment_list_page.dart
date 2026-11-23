@@ -20,8 +20,10 @@ import '../../../application/ai/auto_story_runner.dart';
 import '../../../application/projects/current_project_controller.dart';
 import '../../../application/projects/novel_direction_drafts.dart';
 import '../../../application/providers/repository_providers.dart';
+import '../../../domain/characters/character_card.dart';
 import '../../../domain/projects/project.dart';
 import '../../../domain/segments/segment.dart';
+import '../../../domain/world/world_card.dart';
 import '../../mascot/application/mascot_controller.dart';
 import '../../mascot/domain/mascot_action.dart';
 import '../../ai/presentation/ai_ui_helpers.dart';
@@ -30,6 +32,7 @@ import 'project_flow_widgets.dart';
 import 'segment_ai_dialog.dart';
 import 'segment_management_pages.dart';
 import '../../../app/theme/ibuki_motion.dart';
+import '../../../app/localization/app_localizations.dart';
 
 class SegmentListPage extends ConsumerStatefulWidget {
   const SegmentListPage({required this.projectId, super.key});
@@ -57,6 +60,7 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
   var _retryingConnection = false;
   var _generationStopped = false;
   var _pluginNoticeShown = false;
+  String? _lastAutoOutputNotice;
   var _autoStoryEnabled = false;
   var _extrasExpanded = false;
   var _autoStoryRunning = false;
@@ -120,6 +124,7 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
       _generating = false;
       _retryingConnection = false;
       _pluginNoticeShown = false;
+      _lastAutoOutputNotice = null;
       _generationStopped = false;
       _autoStoryEnabled = false;
       _extrasExpanded = false;
@@ -171,6 +176,12 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(update.pluginNotice!)));
+    }
+    if (update.outputNotice case final notice?) {
+      if (_lastAutoOutputNotice != notice) {
+        _lastAutoOutputNotice = notice;
+        showSegmentSnack(context, context.tr(notice));
+      }
     }
     switch (update.status) {
       case AutoStoryRunStatus.running:
@@ -273,8 +284,8 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
         skipLoadingOnReload: true,
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => ProjectFlowErrorView(
-          title: '项目不存在',
-          message: '没有找到这个项目，请返回项目列表重新选择。',
+          title: context.tr("项目不存在"),
+          message: context.tr("没有找到这个项目，请返回项目列表重新选择。"),
           onAction: () => context.go(AppRoutes.projects),
         ),
         data: (project) {
@@ -284,8 +295,8 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
             skipLoadingOnReload: true,
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, stackTrace) => ProjectFlowErrorView(
-              title: '正文读取失败',
-              message: '正文段落暂时无法读取，请稍后重试。',
+              title: context.tr("正文读取失败"),
+              message: context.tr("正文段落暂时无法读取，请稍后重试。"),
               onAction: () => context.go(AppRoutes.projects),
             ),
             data: (items) => _buildWorkbench(context, project, items, aiLabel),
@@ -318,7 +329,7 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
             onOpenWorld: _showWorldContext,
             providerLabel: aiLabel,
             onOpenAiSettings: _generating || _autoStoryRunning
-                ? () => _showMessage('请先停止当前生成。')
+                ? () => _showMessage(context.tr("请先停止当前生成。"))
                 : () => showAiModelBindingSheet(
                     context: context,
                     ref: ref,
@@ -474,13 +485,13 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
           ListTile(
             key: const Key('novel-branch-ended'),
             leading: const Icon(Icons.lock_outline),
-            title: const Text('这条故事线已结束'),
+            title: Text(context.tr("这条故事线已结束")),
             subtitle: branch?.endedReason == null
                 ? null
                 : Text(branch!.endedReason!),
             trailing: TextButton(
               onPressed: () => showNovelBranches(context, ref, project.id),
-              child: const Text('故事线'),
+              child: Text(context.tr("故事线")),
             ),
           )
         else
@@ -572,7 +583,7 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
       speakerId = await showDialog<String>(
         context: context,
         builder: (dialog) => SimpleDialog(
-          title: const Text('选择本轮发言角色'),
+          title: Text(context.tr("选择本轮发言角色")),
           children: [
             for (final card in available)
               SimpleDialogOption(
@@ -672,6 +683,9 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
         });
         _followBottom.onContentAppended();
         if (update.status == AiDraftStatus.completed) {
+          if (update.outputNotice case final notice?) {
+            showSegmentSnack(context, context.tr(notice));
+          }
           if (mode == NovelGenerationMode.impersonate) {
             _fillPluginDraft(update.draft);
           } else {
@@ -799,7 +813,7 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
       if (!mounted) {
         return;
       }
-      await showModalBottomSheet<void>(
+      final route = await showModalBottomSheet<String>(
         useRootNavigator: true,
         context: context,
         showDragHandle: true,
@@ -809,14 +823,34 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
               key: const Key('novel-character-context-sheet'),
               mainAxisSize: MainAxisSize.min,
               children: [
-                const ListTile(
-                  title: Text('本次重点参考角色'),
-                  subtitle: Text('仅保存当前页面的选择，尚未发送给 AI。'),
+                ListTile(
+                  title: Text(context.tr("本次重点参考角色")),
+                  subtitle: Text(context.tr("仅保存当前页面的选择，尚未发送给 AI。")),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spacingM,
+                    ),
+                    child: TextButton.icon(
+                      key: const Key('novel-quick-new-character'),
+                      onPressed: () => Navigator.pop(
+                        context,
+                        AppRoutes.newCharacter(
+                          widget.projectId,
+                          returnOnComplete: true,
+                        ),
+                      ),
+                      icon: const Icon(Icons.person_add_alt_1_rounded),
+                      label: Text(context.tr('新建角色')),
+                    ),
+                  ),
                 ),
                 if (characters.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(AppTokens.spacingL),
-                    child: Text('这个作品还没有角色卡。'),
+                    child: Text(context.tr("这个作品还没有角色卡。")),
                   )
                 else
                   Flexible(
@@ -836,8 +870,9 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
                                     overflow: TextOverflow.ellipsis,
                                   ),
                             secondary: IconButton(
-                              tooltip: '查看角色卡',
-                              onPressed: () => context.push(
+                              tooltip: context.tr("查看角色卡"),
+                              onPressed: () => Navigator.pop(
+                                context,
                                 AppRoutes.character(
                                   character.projectId,
                                   character.id,
@@ -864,7 +899,12 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
           ),
         ),
       );
-    } catch (error) {
+      if (!mounted || route == null) return;
+      final selected = await context.push<CharacterCard>(route);
+      if (mounted && selected?.projectId == widget.projectId) {
+        setState(() => _selectedCharacterIds.add(selected!.id));
+      }
+    } catch (_) {
       if (mounted) {
         showSegmentSnack(context, '角色卡暂时无法读取。');
       }
@@ -879,7 +919,7 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
       if (!mounted) {
         return;
       }
-      await showModalBottomSheet<void>(
+      final create = await showModalBottomSheet<bool>(
         useRootNavigator: true,
         context: context,
         showDragHandle: true,
@@ -889,14 +929,28 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
               key: const Key('novel-world-context-sheet'),
               mainAxisSize: MainAxisSize.min,
               children: [
-                const ListTile(
-                  title: Text('本次参考设定'),
-                  subtitle: Text('仅保存当前页面的选择，尚未发送给 AI。'),
+                ListTile(
+                  title: Text(context.tr("本次参考设定")),
+                  subtitle: Text(context.tr("仅保存当前页面的选择，尚未发送给 AI。")),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spacingM,
+                    ),
+                    child: TextButton.icon(
+                      key: const Key('novel-quick-new-world'),
+                      onPressed: () => Navigator.pop(context, true),
+                      icon: const Icon(Icons.add_circle_outline_rounded),
+                      label: Text(context.tr('新建世界观')),
+                    ),
+                  ),
                 ),
                 if (cards.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(AppTokens.spacingL),
-                    child: Text('这个作品还没有世界观卡。'),
+                    child: Text(context.tr("这个作品还没有世界观卡。")),
                   )
                 else
                   Flexible(
@@ -916,7 +970,7 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
                                     overflow: TextOverflow.ellipsis,
                                   ),
                             secondary: IconButton(
-                              tooltip: '查看世界观',
+                              tooltip: context.tr("查看世界观"),
                               onPressed: () => context.push(
                                 AppRoutes.worldCard(card.projectId, card.id),
                               ),
@@ -941,7 +995,14 @@ class _SegmentListPageState extends ConsumerState<SegmentListPage>
           ),
         ),
       );
-    } catch (error) {
+      if (!mounted || create != true) return;
+      final card = await context.push<WorldCard>(
+        AppRoutes.newWorldCard(widget.projectId, returnOnComplete: true),
+      );
+      if (mounted && card?.projectId == widget.projectId) {
+        setState(() => _selectedWorldCardIds.add(card!.id));
+      }
+    } catch (_) {
       if (mounted) {
         showSegmentSnack(context, '世界观暂时无法读取。');
       }
@@ -968,7 +1029,7 @@ class _ManuscriptHeader extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                '正文 · $segmentCount 段',
+                context.tr("正文 · {count} 段", {"count": segmentCount}),
                 key: const Key('segment-count-label'),
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -978,7 +1039,7 @@ class _ManuscriptHeader extends StatelessWidget {
             ),
             IconButton(
               key: const Key('deleted-segments-button'),
-              tooltip: '已删除正文',
+              tooltip: context.tr("已删除正文"),
               visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.delete_outline_rounded, size: 20),
               onPressed: () =>
@@ -1008,10 +1069,13 @@ class _EmptySegmentsState extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: AppTokens.spacingM),
-          Text('还没有正文', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            context.tr("还没有正文"),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: AppTokens.spacingS),
           Text(
-            '在下方写下创作方向，或从「额外创作」手动添加正文。',
+            context.tr("在下方写下创作方向，或从「额外创作」手动添加正文。"),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1070,7 +1134,7 @@ class _ContinuousSegment extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          '第 ${index + 1} 段',
+                          context.tr("第 {number} 段", {"number": index + 1}),
                           key: Key('segment-number-${segment.id}'),
                           style: theme.textTheme.titleSmall?.copyWith(
                             color: theme.colorScheme.primary,
@@ -1081,30 +1145,30 @@ class _ContinuousSegment extends ConsumerWidget {
                       PopupMenuButton<_SegmentMenuAction>(
                         useRootNavigator: true,
                         key: Key('segment-menu-${segment.id}'),
-                        tooltip: '段落更多操作',
+                        tooltip: context.tr("段落更多操作"),
                         onSelected: (action) =>
                             _handleAction(context, ref, action),
                         itemBuilder: (context) => [
                           PopupMenuItem(
                             enabled: !storyEnded,
                             value: _SegmentMenuAction.edit,
-                            child: const Text('手动编辑'),
+                            child: Text(context.tr("手动编辑")),
                           ),
                           const PopupMenuDivider(),
                           PopupMenuItem(
                             enabled: !storyEnded,
                             value: _SegmentMenuAction.aiRewrite,
-                            child: const Text('AI 重写这一段'),
+                            child: Text(context.tr("AI 重写这一段")),
                           ),
                           PopupMenuItem(
                             enabled: !storyEnded,
                             value: _SegmentMenuAction.aiModify,
-                            child: const Text('按要求修改'),
+                            child: Text(context.tr("按要求修改")),
                           ),
                           PopupMenuItem(
                             enabled: !storyEnded,
                             value: _SegmentMenuAction.aiPartialRewrite,
-                            child: const Text('选择性修改'),
+                            child: Text(context.tr("选择性修改")),
                           ),
                           const PopupMenuItem(
                             value: _SegmentMenuAction.aiInsertAfter,
@@ -1115,36 +1179,36 @@ class _ContinuousSegment extends ConsumerWidget {
                           PopupMenuItem(
                             enabled: !storyEnded,
                             value: _SegmentMenuAction.insertBefore,
-                            child: const Text('在前面插入'),
+                            child: Text(context.tr("在前面插入")),
                           ),
                           PopupMenuItem(
                             enabled: !storyEnded,
                             value: _SegmentMenuAction.insertAfter,
-                            child: const Text('在后面插入'),
+                            child: Text(context.tr("在后面插入")),
                           ),
                           PopupMenuItem(
                             value: _SegmentMenuAction.moveUp,
                             enabled: index > 0,
-                            child: const Text('上移'),
+                            child: Text(context.tr("上移")),
                           ),
                           PopupMenuItem(
                             value: _SegmentMenuAction.moveDown,
                             enabled: index < allSegments.length - 1,
-                            child: const Text('下移'),
+                            child: Text(context.tr("下移")),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: _SegmentMenuAction.history,
-                            child: Text('查看历史'),
+                            child: Text(context.tr("查看历史")),
                           ),
                           if (pluginEnabled || storyEnded)
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: _SegmentMenuAction.candidates,
-                              child: Text('候选与分叉'),
+                              child: Text(context.tr("候选与分叉")),
                             ),
                           const PopupMenuDivider(),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: _SegmentMenuAction.delete,
-                            child: Text('删除'),
+                            child: Text(context.tr("删除")),
                           ),
                         ],
                         child: DecoratedBox(
@@ -1361,11 +1425,11 @@ class _AiDraftSegment extends StatelessWidget {
                 Text(
                   generating
                       ? retryingConnection
-                            ? '连接意外中断，正在重新尝试……'
-                            : '伊吹正在写……'
+                            ? context.tr("连接意外中断，正在重新尝试……")
+                            : context.tr("伊吹正在写……")
                       : stopped
-                      ? '生成已停止'
-                      : 'AI 草稿',
+                      ? context.tr("生成已停止")
+                      : context.tr("AI 草稿"),
                   style: theme.textTheme.titleSmall,
                 ),
               ],
@@ -1391,7 +1455,7 @@ class _AiDraftSegment extends StatelessWidget {
                   child: TextButton(
                     key: const Key('novel-ai-error-detail-button'),
                     onPressed: onShowErrorDetail,
-                    child: const Text('查看详情'),
+                    child: Text(context.tr("查看详情")),
                   ),
                 ),
             ],
@@ -1401,11 +1465,14 @@ class _AiDraftSegment extends StatelessWidget {
                 alignment: WrapAlignment.end,
                 spacing: AppTokens.spacingS,
                 children: [
-                  TextButton(onPressed: onDiscard, child: const Text('丢弃')),
+                  TextButton(
+                    onPressed: onDiscard,
+                    child: Text(context.tr("丢弃")),
+                  ),
                   FilledButton.tonal(
                     key: const Key('keep-stopped-novel-draft'),
                     onPressed: onKeep,
-                    child: const Text('保留草稿'),
+                    child: Text(context.tr("保留草稿")),
                   ),
                 ],
               ),
@@ -1448,7 +1515,9 @@ class _NovelContextToolbar extends StatelessWidget {
             ),
             icon: const Icon(Icons.people_outline_rounded, size: 18),
             label: Text(
-              selectedCharacterCount == 0 ? '角色' : '角色 $selectedCharacterCount',
+              selectedCharacterCount == 0
+                  ? context.tr("角色")
+                  : context.tr("角色 {count}", {"count": selectedCharacterCount}),
               maxLines: 1,
             ),
           ),
@@ -1466,7 +1535,9 @@ class _NovelContextToolbar extends StatelessWidget {
             ),
             icon: const Icon(Icons.auto_stories_outlined, size: 18),
             label: Text(
-              selectedWorldCount == 0 ? '世界' : '世界 $selectedWorldCount',
+              selectedWorldCount == 0
+                  ? context.tr("世界")
+                  : context.tr("世界 {count}", {"count": selectedWorldCount}),
               maxLines: 1,
             ),
           ),
@@ -1484,7 +1555,7 @@ class _NovelContextToolbar extends StatelessWidget {
             ),
             icon: const Icon(Icons.tune_rounded, size: 16),
             label: Text(
-              providerLabel ?? '尚未配置 AI',
+              providerLabel ?? context.tr("尚未配置 AI"),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -1604,7 +1675,7 @@ class _NovelDirectionComposer extends StatelessWidget {
                                         icon: const Icon(
                                           Icons.edit_note_outlined,
                                         ),
-                                        label: const Text('手动添加'),
+                                        label: Text(context.tr("手动添加")),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -1622,7 +1693,7 @@ class _NovelDirectionComposer extends StatelessWidget {
                                           Icons.playlist_play_rounded,
                                           size: 18,
                                         ),
-                                        label: const Text('自动剧情'),
+                                        label: Text(context.tr("自动剧情")),
                                       ),
                                     ),
                                   ],
@@ -1631,7 +1702,7 @@ class _NovelDirectionComposer extends StatelessWidget {
                                 Text(
                                   autoStoryRunning
                                       ? '已生成 $autoStoryGeneratedCount 段，可随时停止。'
-                                      : '开启自动剧情后，会连续生成直到你停止。',
+                                      : context.tr("开启自动剧情后，会连续生成直到你停止。"),
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: context.ibukiColors.textMuted,
                                   ),
@@ -1652,7 +1723,7 @@ class _NovelDirectionComposer extends StatelessWidget {
                       const SizedBox(width: AppTokens.spacingXs),
                       Expanded(
                         child: Text(
-                          '下一段想发生什么？',
+                          context.tr("下一段想发生什么？"),
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
@@ -1661,7 +1732,7 @@ class _NovelDirectionComposer extends StatelessWidget {
                       if (onPluginMode != null)
                         PopupMenuButton<NovelGenerationMode>(
                           key: const Key('novel-plugin-generation-modes'),
-                          tooltip: '插件生成模式',
+                          tooltip: context.tr("插件生成模式"),
                           enabled: !generating && !autoStoryRunning,
                           icon: const Icon(
                             Icons.auto_awesome_outlined,
@@ -1672,19 +1743,19 @@ class _NovelDirectionComposer extends StatelessWidget {
                             PopupMenuItem(
                               value: NovelGenerationMode.continueReply,
                               enabled: hasManuscript,
-                              child: const Text('接着上一段续写'),
+                              child: Text(context.tr("接着上一段续写")),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: NovelGenerationMode.impersonate,
-                              child: Text('代写作者草稿'),
+                              child: Text(context.tr("代写作者草稿")),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: NovelGenerationMode.group,
-                              child: Text('指定角色发言'),
+                              child: Text(context.tr("指定角色发言")),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: NovelGenerationMode.empty,
-                              child: Text('空发推进'),
+                              child: Text(context.tr("空发推进")),
                             ),
                           ],
                         ),
@@ -1705,7 +1776,7 @@ class _NovelDirectionComposer extends StatelessWidget {
                               : Icons.keyboard_arrow_up_rounded,
                           size: 18,
                         ),
-                        label: const Text('额外创作'),
+                        label: Text(context.tr("额外创作")),
                       ),
                     ],
                   ),
@@ -1717,8 +1788,8 @@ class _NovelDirectionComposer extends StatelessWidget {
                     minLines: 1,
                     maxLines: 2,
                     textInputAction: TextInputAction.newline,
-                    decoration: const InputDecoration(
-                      hintText: '告诉伊吹，接下来想怎么写……',
+                    decoration: InputDecoration(
+                      hintText: context.tr("告诉伊吹，接下来想怎么写……"),
                       isDense: true,
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: AppTokens.spacingM,
@@ -1742,12 +1813,12 @@ class _NovelDirectionComposer extends StatelessWidget {
                           ),
                           label: Text(
                             autoStoryRunning
-                                ? '停止自动剧情'
+                                ? context.tr("停止自动剧情")
                                 : generating
-                                ? '停止'
+                                ? context.tr("停止")
                                 : autoStoryEnabled
-                                ? '开始自动剧情'
-                                : '生成下一段',
+                                ? context.tr("开始自动剧情")
+                                : context.tr("生成下一段"),
                           ),
                         ),
                       ),

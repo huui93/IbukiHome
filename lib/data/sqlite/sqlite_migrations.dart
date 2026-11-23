@@ -24,6 +24,7 @@ Future<void> createLatestSchema(DatabaseExecutor db) async {
     await db.execute(statement);
   }
   await createTavernWorldInfoV14Schema(db);
+  await ensureNovelOutputTemperature(db);
   for (final statement in SqliteSchema.createIndexStatements) {
     await db.execute(statement);
   }
@@ -48,6 +49,9 @@ Future<void> ensureCurrentSchema(Database db) async {
   }
   if (await db.getVersion() >= 19) {
     await db.transaction(createNovelOutputV19Schema);
+    if (await db.getVersion() >= 22) {
+      await db.transaction(ensureNovelOutputTemperature);
+    }
   }
   if (await db.getVersion() >= 18) {
     await db.transaction(createChatControlsV18Schema);
@@ -360,6 +364,9 @@ ON chat_memory_entries(session_id, is_pinned DESC, updated_at DESC)
     }
     if (oldVersion < 19 && newVersion >= 19) {
       await createNovelOutputV19Schema(txn);
+    }
+    if (oldVersion < 22 && newVersion >= 22) {
+      await ensureNovelOutputTemperature(txn);
     }
     if (oldVersion < 18 && newVersion >= 18) {
       await createChatControlsV18Schema(txn);

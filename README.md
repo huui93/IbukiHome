@@ -1,16 +1,16 @@
 # 伊吹之家 · Android
 
-**v1.0.0** · Flutter Android 应用。小说创作与角色聊天分别保存作品、角色和记忆。两个模式共用模型配置，可按任务选择模型。
+**v1.1.0** · Flutter Android 应用。小说创作与角色聊天分别保存作品、角色和记忆。两个模式共用模型配置，可按任务选择模型。
 
-[**下载 Android APK · v1.0.0 通用版**](https://github.com/huui93/IbukiHome/releases/download/v1.0.0/IbukiHome-v1.0.0-universal.apk)
+[**下载 Android APK · v1.1.0 通用版**](https://github.com/huui93/IbukiHome/releases/download/v1.1.0/IbukiHome-v1.1.0-universal.apk)
 
-支持 Android 7.0 及以上，使用测试签名。[发布说明与 SHA-256](https://github.com/huui93/IbukiHome/releases/tag/v1.0.0)
+支持 Android 7.0 及以上，使用测试签名。[发布说明与 SHA-256](https://github.com/huui93/IbukiHome/releases/tag/v1.1.0)
 
 ## 功能
 
 - **小说**提供书架、阅读、TXT 导入和分作品创作。每部作品可配置角色、大纲、长期记忆、系统提示词方案和输出字数范围。生成支持续写、重写和分支。
 - **聊天**提供独立人格、示例对话、头像、会话列表及流式回复。每个会话各自保存上下文、摘要和长期记忆，可检索记忆、查看 Token 用量及发送图片。支持独立识图模型。
-- **设置**包含本人资料、模型与流式选项、备份和插件管理。内置接口类型覆盖 OpenAI、Gemini、DeepSeek、Kimi、千问、Grok、GLM、Claude 和自定义接口。选择实际可用的模型 ID，并在配置页面验证连接。
+- **设置**包含语言、本人资料、模型与流式选项、备份和插件管理。「语言」可选择简体中文、English、Français 和日本語，设备会保留上次选择。内置接口类型覆盖 OpenAI、Gemini、DeepSeek、Kimi、千问、Grok、GLM、Claude 和自定义接口。选择实际可用的模型 ID，并在配置页面验证连接。
 - **小说插件宿主**支持项目与分支作用域、结构化提示词、生成参数、历史与记忆、渲染和受控操作。仓库提供宿主及开发接口文档。插件作者单独提供 `.ibuki` 文件。
 
 ## 目录
@@ -52,7 +52,7 @@ flutter build apk --debug --no-pub
 flutter build apk --release --no-pub
 ```
 
-APK 在 `build/app/outputs/flutter-apk/`。现有 release 构建使用 Android 调试签名供测试。正式分发需由项目维护者配置自己的签名，并把密钥及密码放在 Git 之外。项目版本为 `v1.0.0`，Android 版本名为 `1.0.0`，构建号为 `1`。
+APK 在 `build/app/outputs/flutter-apk/`。现有 release 构建使用 Android 调试签名供测试。正式分发需由项目维护者配置自己的签名，并把密钥及密码放在 Git 之外。项目版本为 `v1.1.0`，Android 版本名为 `1.1.0`，构建号为 `4`。
 
 默认测试使用合成数据和模拟模型调用。有几组兼容测试需要维护者自行取得并存放于被忽略路径的插件资源。路径及覆盖范围见 [测试和本地验证](docs/development.md)。
 

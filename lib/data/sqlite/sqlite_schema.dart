@@ -10,7 +10,7 @@ import 'novel_plugins_v21_schema.dart';
 class SqliteSchema {
   const SqliteSchema._();
 
-  static const int version = 21;
+  static const int version = 22;
   static const String databaseName = 'ibukihome.db';
 
   static const List<String> baseCreateTableStatements = [
