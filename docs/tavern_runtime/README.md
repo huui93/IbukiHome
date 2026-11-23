@@ -1,5 +1,7 @@
 # Tavern runtime
 
+These are historical design and acceptance records. They describe earlier runtime phases and preserve the app builds, schemas, and product scope recorded at those checkpoints. The Android v1.1.0 README describes the current navigation and download. [Current Android app](../../README.en.md) · [Developer setup](../development.en.md)
+
 Foundation: [domain](01-domain-model-v1.md), [repository](03-runtime-repository-contract.md), [invariants](07-foundation-invariants.md).
 
 Generation: [runtime](08-generation-runtime-v1.md), [state and driver](09-generation-state-and-driver.md), [recovery](10-generation-recovery-invariants.md).
@@ -15,3 +17,5 @@ Provider integration: [adapter](25-provider-adapter-v1.md), [capabilities](26-pr
 Provider acceptance: [Phase 10 gates, audit and restart limitation](31-provider-acceptance-and-freeze.md).
 
 Durable reconciliation: [design](32-durable-reconciliation-design.md), [schema](33-world-info-persistence-schema.md), [crash recovery](34-recovery-and-crash-matrix.md), [historical forks](35-branch-state-checkpoints.md), [archive/merge](36-archive-and-merge-semantics.md), [invariants](37-durable-reconciliation-invariants.md), [Phase 11 acceptance evidence](38-phase11-acceptance.md).
+
+Production UI checkpoint. [Audit](39-production-ui-audit.md) · [Integration and compatibility](40-production-ui-integration.md) · [Phase 12 acceptance record](41-phase12-acceptance.md)

@@ -1,6 +1,8 @@
 # IbukiHome Mobile 插件开发接口
 
-适用于 NVWA 小说预览版（App `1.0.0+1`，插件扩展 API v1–v2）。这份文档以该版本已接通的入口为准。接口、JSON 字段和枚举值区分大小写。
+**简体中文** · [English](PLUGIN_DEVELOPMENT.en.md)
+
+适用于伊吹之家 Android v1.1.0（构建号 4），覆盖插件扩展 API v1 和 v2。接口、JSON 字段和枚举值区分大小写。
 
 ## 选一个入口
 
@@ -20,7 +22,7 @@
 | --- | --- |
 | `manifestVersion` | 整数，当前固定为 `1` |
 | `extensionApiVersion` | 整数，省略等于 `1`。小说结构化预设填 `2` |
-| `id`、`name`、`version` | 必填字符串。ID 允许字母、数字、点、下划线和连字符。发布后保持 ID 稳定 |
+| `id`、`name`、`version` | 必填字符串。ID 允许字母、数字、点、下划线和连字符。发布后保持 ID 稳定。示例的 `1.0.0` 是插件自己的版本 |
 | `author`、`description` | 可选。供安装者判断作者与用途 |
 | `minIbukiVersion` | 可选。最低 App 版本。App 版本和扩展 API 版本各自检查 |
 | `runtime.type` | `declarative` 或 `web`。Web 页面入口在 `contributions.chatPanels[].entry` |
@@ -179,7 +181,7 @@ with ZipFile(target, "w", ZIP_DEFLATED) as archive:
 | `stream` | 布尔值，流式显示建议。App 的全局关闭优先，底层连接仍可能使用 SSE |
 | `reasoning` | `automatic`、`disabled`、`enabled`、`low`、`medium`、`high`、`xhigh`、`max` |
 | `top_p`、`top_k`、`frequency_penalty`、`presence_penalty`、`seed` | 可选采样建议。具体字段和数值范围由当前模型适配器决定，`seed: -1` 表示使用随机默认 |
-| `continuePrefill` | 布尔值，申请将上一段末尾用作原生续写预填充。预览版只对识别到的兼容 Claude 3 系列条件应用 |
+| `continuePrefill` | 布尔值，申请将上一段末尾用作原生续写预填充。当前适配器仅对识别到的兼容 Claude 3 系列应用 |
 
 检查面板的 `requested` 包含预设和故事线建议，以及作品设置中明确指定的 `projectTemperature` 和 `projectOutputTokenLimit`。作品温度优先于插件建议，作品字数推算的 token 额度与插件额度取较小者，模型和宿主限制仍优先。`effective` 是宿主预算与模型校验后的结果。`wireParameters` 是适配器构造实际请求时记录的参数。上下文 token 数是本地估算；达到预算时，宿主先移除较早的历史块。固定内容本身超出额度时，需要缩短预设或增大额度。
 

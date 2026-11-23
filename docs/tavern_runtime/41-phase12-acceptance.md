@@ -1,5 +1,7 @@
 # Phase 12 Production Tavern MVP UI v1 acceptance
 
+> Historical acceptance record. Versions and results below describe this checkpoint. [Current Android release](../../README.en.md)
+
 ## Baseline and status
 
 - Worktree: `<workspace>`

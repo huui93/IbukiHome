@@ -1,5 +1,7 @@
 # Phase 11 acceptance evidence
 
+> Historical acceptance record. Versions and results below describe this checkpoint. [Current Android release](../../README.en.md)
+
 Phase 11 Code / Offline Gate: **APPROVED** after final acceptance and critical invariant audit. Freeze reference: annotated tag `mobile-tavern-durable-reconciliation-v1-approved`. This is a technical freeze, not real-model or Android experience approval. No Production Tavern UI or real Provider request in this phase; not merged.
 
 ## Baseline

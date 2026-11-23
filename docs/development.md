@@ -1,5 +1,9 @@
 # 本地开发与验证
 
+**简体中文** · [English](development.en.md)
+
+当前 Android 发行版为 v1.1.0，Flutter 应用版本为 `1.1.0+4`，数据库为 SQLite v22。插件宿主支持扩展 API v1 和 v2。应用版本、数据库版本和插件 API 版本分别维护。[v1.1.0 发布页](https://github.com/huui93/IbukiHome/releases/tag/v1.1.0)
+
 项目使用 Flutter 和 Android。开发入口和 SDK 版本见 [项目说明](../README.md)。`android/local.properties` 由 Flutter 生成，也可从 `android/local.properties.example` 复制后填写。API Key 从设备设置页输入，测试由模拟 Transport 提供响应。运行可能调用真实服务的脚本前，请检查脚本和当前配置。
 
 ## 插件兼容性测试

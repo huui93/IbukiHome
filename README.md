@@ -1,5 +1,7 @@
 # 伊吹之家 · Android
 
+**简体中文** · [English](README.en.md)
+
 **v1.1.0** · Flutter Android 应用。小说创作与角色聊天分别保存作品、角色和记忆。两个模式共用模型配置，可按任务选择模型。
 
 [**下载 Android APK · v1.1.0 通用版**](https://github.com/huui93/IbukiHome/releases/download/v1.1.0/IbukiHome-v1.1.0-universal.apk)
